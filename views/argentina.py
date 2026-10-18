@@ -78,7 +78,7 @@ st.markdown(
     unsafe_allow_html=True)
 
 # --- the chart: event study ----------------------------------------------------
-st.markdown('<div class="sw-label" style="margin-top:3.5rem">How the market moved · day 0 = announcement = 100</div>',
+st.markdown('<div class="sw-label" style="margin:3.5rem 0 2.2rem">How the market moved · day 0 = announcement = 100</div>',
             unsafe_allow_html=True)
 lo, hi = st.slider("Trading days around the announcement", -60, 250, (-30, 120), label_visibility="collapsed")
 
