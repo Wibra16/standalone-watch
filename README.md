@@ -13,8 +13,13 @@ streamlit run app.py
 ```
 
 ## Structure
+- `app.py` — sets up the four top tabs
+- `views/home.py` — full-screen countdown to MSCI's decision
+- `views/updates.py` — daily news feed (Google News RSS)
+- `views/simulator.py` — forced-selling model for Indonesia
+- `views/argentina.py` — case study of Argentina's 2021 move to Standalone
 - `config.py` — dates, tickers, defaults, colors
 - `model.py` — outflow math (no UI)
-- `data.py` — yfinance downloads + caching
-- `components.py` — shared styling, disclaimer, live countdown
-- `app.py` — the Streamlit page
+- `data.py` — yfinance downloads, caching, weights, valuation, event windows
+- `news.py` — fetch, dedupe and tag headlines (`python news.py` to refresh)
+- `components.py` — shared styling and UI building blocks

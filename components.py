@@ -22,9 +22,20 @@ def apply_style():
             font-family: {FONT} !important;
         }}
         .stApp {{ background: {BLACK}; color: {WHITE}; }}
-        header[data-testid="stHeader"], [data-testid="stSidebar"],
-        [data-testid="stSidebarCollapsedControl"], footer {{ display: none; }}
-        .block-container {{ padding: 0 1.5rem 6rem; max-width: 980px; }}
+        [data-testid="stSidebar"], [data-testid="stSidebarCollapsedControl"], footer,
+        [data-testid="stToolbarActions"], [data-testid="stMainMenu"], [data-testid="stAppDeployButton"],
+        [data-testid="stDecoration"], [data-testid="stStatusWidget"] {{ display: none; }}
+        .block-container {{ padding: 4.5rem 1.5rem 6rem; max-width: 980px; }}
+
+        /* top tabs */
+        header[data-testid="stHeader"] {{ background: {BLACK}; border-bottom: 1px solid {RULE}; }}
+        header [data-testid="stTopNavLink"], header a {{ border-radius: 0 !important; }}
+        header [data-testid="stTopNavLink"] span, header a span {{
+            font-size: .68rem !important; letter-spacing: .16em; text-transform: uppercase; color: {GREY};
+        }}
+        header [data-testid="stTopNavLink"]:hover span {{ color: {WHITE}; }}
+        header [aria-current="page"] {{ background: transparent !important; }}
+        header [aria-current="page"] span {{ color: {RED} !important; }}
         hr {{ border-color: {RULE} !important; margin: 2rem 0 !important; }}
 
         [data-testid="stMetricLabel"] p {{
@@ -35,7 +46,7 @@ def apply_style():
         [data-testid="stExpander"] summary p {{ font-size: .75rem; letter-spacing: .12em;
             text-transform: uppercase; color: {GREY}; }}
 
-        .sw-section {{ margin: 7rem 0 2.5rem; display: flex; justify-content: space-between;
+        .sw-section {{ margin: 2rem 0 2.5rem; display: flex; justify-content: space-between;
             align-items: baseline; border-bottom: 1px solid {RULE}; padding-bottom: .8rem; }}
         .sw-section .n {{ color: {RED}; font-size: .72rem; letter-spacing: .16em; }}
         .sw-section .t {{ font-size: 1.05rem; letter-spacing: .02em; color: {WHITE}; }}
@@ -87,9 +98,34 @@ def apply_style():
         .sw-a .k {{ color: {RED}; font-size: .65rem; letter-spacing: .12em; margin-right: 6px; }}
         .sw-a .x {{ color: {GREY}; font-size: .7rem; line-height: 1.6; margin-top: .3rem; }}
 
+        /* case-study page */
+        .sw-lede {{ color: {WHITE}; font-size: .95rem; line-height: 1.75; max-width: 720px; }}
+        .sw-lede b {{ color: {RED}; font-weight: 400; }}
+        .sw-stats {{ display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 2.5rem;
+            border-top: 1px solid {RULE}; border-bottom: 1px solid {RULE}; }}
+        .sw-stat {{ padding: 1.3rem 1rem 1.4rem 0; }}
+        .sw-stat + .sw-stat {{ padding-left: 1rem; border-left: 1px solid {RULE}; }}
+        .sw-stat .v {{ font-size: 1.7rem; color: {WHITE}; letter-spacing: -.02em; }}
+        .sw-stat .v.r {{ color: {RED}; }}
+        .sw-stat .c {{ font-size: .62rem; color: {GREY}; letter-spacing: .08em; margin-top: .5rem;
+            text-transform: uppercase; line-height: 1.5; }}
+        .sw-tl {{ margin-top: 1.2rem; border-left: 1px solid {RULE}; }}
+        .sw-tl .e {{ display: grid; grid-template-columns: 120px 1fr; gap: 18px; padding: .9rem 0 .9rem 1.4rem;
+            position: relative; }}
+        .sw-tl .e::before {{ content: ''; position: absolute; left: -4px; top: 1.25rem; width: 7px; height: 7px;
+            border-radius: 50%; background: {GREY}; }}
+        .sw-tl .e.hot::before {{ background: {RED}; }}
+        .sw-tl .d {{ color: {GREY}; font-size: .72rem; padding-top: 2px; }}
+        .sw-tl .e.hot .d {{ color: {RED}; }}
+        .sw-tl .h {{ color: {WHITE}; font-size: .88rem; }}
+        .sw-tl .b {{ color: {GREY}; font-size: .74rem; line-height: 1.6; margin-top: .25rem; }}
+        .sw-takeaway {{ color: {WHITE}; font-size: .9rem; line-height: 1.7; margin: 1.4rem 0 .4rem; }}
+        .sw-takeaway b {{ color: {RED}; font-weight: 400; }}
+
         @media (max-width: 640px) {{
             .sw-day {{ grid-template-columns: 1fr; }}
-            .sw-steps {{ grid-template-columns: 1fr; }}
+            .sw-steps, .sw-stats {{ grid-template-columns: 1fr 1fr; }}
+            .sw-tl .e {{ grid-template-columns: 1fr; gap: 4px; }}
             .sw-step + .sw-step {{ padding-left: 0; border-left: none; border-top: 1px solid {RULE}; }}
         }}
         </style>
@@ -179,13 +215,12 @@ def hero(jci_change, fx_last):
         if (wrap && wrap.style.height !== h) {{ wrap.style.height = h; wrap.style.minHeight = h; }}
       }}
       fit(); window.parent.addEventListener('resize', fit); setInterval(fit, 400);
-      // The hero lives in an iframe, so scroll the parent Streamlit page
+      // The hero lives in an iframe, so navigate the parent page to the News tab
+      // (the frame can't change the page address itself, so it clicks the News tab)
       function go() {{
-        const t = window.parent.document.getElementById('news');
-        if (t) {{ t.scrollIntoView({{ behavior: 'smooth' }}); return; }}
-        // Page still loading: just move down one screen
-        const main = window.parent.document.querySelector('section.stMain');
-        if (main) main.scrollBy({{ top: window.parent.innerHeight, behavior: 'smooth' }});
+        const doc = window.parent.document;
+        const link = [...doc.querySelectorAll('header a')].find(a => (a.getAttribute('href') || '').endsWith('news'));
+        if (link) link.click();
       }}
       document.getElementById('down').addEventListener('click', go);
     </script>
@@ -194,9 +229,9 @@ def hero(jci_change, fx_last):
 
 
 def nav_arrow(target, label, symbol="↓"):
-    """Round ↓ button that jumps to another section (plain anchor link)."""
+    """Round arrow button linking to another tab (by its url_path)."""
     st.markdown(
-        f'<div class="sw-nav"><a href="#{target}">{symbol}</a><span>{label}</span></div>',
+        f'<div class="sw-nav"><a href="{target}" target="_self">{symbol}</a><span>{label}</span></div>',
         unsafe_allow_html=True,
     )
 

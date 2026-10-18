@@ -98,3 +98,17 @@ def free_float_weights(universe, prices, coverage, eligible=None):
         caps[ticker] = shares * free_float * df["Close"].iloc[-1] if shares and not df.empty else None
     total = sum(c for c in caps.values() if c)
     return {t: (c / total * coverage if c is not None else None) for t, c in caps.items()}
+
+
+def event_window(close, day0, before=60, after=250):
+    """Line a price series up around an event: index = trading days from
+    `day0` (0 = last close on or before the event), values rebased so day 0 = 100.
+    Only uses data that exists, so for a recent event the line simply stops today."""
+    close = close.dropna()
+    pos = close.index.searchsorted(pd.Timestamp(day0), side="right") - 1
+    if pos < 0:
+        return pd.Series(dtype=float)
+    window = close.iloc[max(0, pos - before): pos + after + 1]
+    out = window / close.iloc[pos] * 100
+    out.index = range(max(0, pos - before) - pos, max(0, pos - before) - pos + len(out))
+    return out
