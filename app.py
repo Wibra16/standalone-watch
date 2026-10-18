@@ -86,29 +86,30 @@ results = st.container()
 # --- assumptions: each one a slider plus a plain-English line ----------------
 D = config.DEFAULTS
 st.write("")
-st.markdown('<div class="sw-label">Your assumptions · drag to change</div>', unsafe_allow_html=True)
-a, b = st.columns(2, gap="large")
-with a:
-    assumption("A1", "Passive money tracking MSCI EM",
-               "Dollars in index funds that copy MSCI Emerging Markets. Rough industry estimate.")
-    passive_aum_bn = st.number_input("$bn", 0, 5000, D["passive_aum_bn"], step=50, label_visibility="collapsed")
-    assumption("A2", "Indonesia's share of the index",
-               "Of every $100 in an EM fund, about this much is in Indonesian stocks.")
-    indonesia_weight = st.number_input("%", 0.0, 10.0, D["indonesia_weight"], step=0.1, label_visibility="collapsed")
-    assumption("A3", "Share of funds that actually sell",
-               "100% means every tracker exits. Lower it if some funds keep holdings or have flexible mandates.")
-    pct_sell = st.slider("pct_sell", 0, 100, D["pct_sell"], format="%d%%", label_visibility="collapsed")
-with b:
-    assumption("A4", "Probability MSCI goes through with it",
-               "Your estimate. It turns the 'if downgraded' outflow into an expected outflow.")
-    probability = st.slider("prob", 0, 100, D["probability"], format="%d%%", label_visibility="collapsed")
-    assumption("A5", "Participation rate",
-               "The share of a stock's normal daily trading that sellers can be without crashing the price. "
-               "Traders often use 10–25%.")
-    participation = st.slider("part", 1, 50, D["participation"], format="%d%%", label_visibility="collapsed")
-    assumption("A6", "Days funds take to exit",
-               "If funds squeeze the selling into this many days, how big is it compared with normal trading?")
-    days_to_exit = st.slider("days", 1, 120, D["days_to_exit"], format="%d days", label_visibility="collapsed")
+with st.expander("Your assumptions · click to change"):
+    a, b = st.columns(2, gap="large")
+    with a:
+        assumption("A1", "Passive money tracking MSCI EM",
+                   "Dollars in index funds that copy MSCI Emerging Markets, in billions (500 = $500bn). Rough industry estimate.")
+        passive_aum_bn = st.number_input("$ billions", 0, 20000, D["passive_aum_bn"], step=50,
+                                         help="In billions of US dollars. 1,000 = $1 trillion.")
+        assumption("A2", "Indonesia's share of the index",
+                   "Of every $100 in an EM fund, about this much is in Indonesian stocks.")
+        indonesia_weight = st.number_input("%", 0.0, 10.0, D["indonesia_weight"], step=0.1, label_visibility="collapsed")
+        assumption("A3", "Share of funds that actually sell",
+                   "100% means every tracker exits. Lower it if some funds keep holdings or have flexible mandates.")
+        pct_sell = st.slider("pct_sell", 0, 100, D["pct_sell"], format="%d%%", label_visibility="collapsed")
+    with b:
+        assumption("A4", "Probability MSCI goes through with it",
+                   "Your estimate. It turns the 'if downgraded' outflow into an expected outflow.")
+        probability = st.slider("prob", 0, 100, D["probability"], format="%d%%", label_visibility="collapsed")
+        assumption("A5", "Participation rate",
+                   "The share of a stock's normal daily trading that sellers can be without crashing the price. "
+                   "Traders often use 10–25%.")
+        participation = st.slider("part", 1, 50, D["participation"], format="%d%%", label_visibility="collapsed")
+        assumption("A6", "Days funds take to exit",
+                   "If funds squeeze the selling into this many days, how big is it compared with normal trading?")
+        days_to_exit = st.slider("days", 1, 120, D["days_to_exit"], format="%d days", label_visibility="collapsed")
 
 # --- model ---------------------------------------------------------------
 usd_idr = fx["Close"].iloc[-1] if not fx.empty else None
