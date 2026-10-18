@@ -173,4 +173,4 @@ st.markdown(
     'Bloomberg, Infobae and El Economista coverage of the market reaction; Schroders on Argentina\'s EM weight; '
     'prices from Yahoo Finance.</p>', unsafe_allow_html=True)
 
-nav_arrow("home", "Back to the countdown", "↑")
+nav_arrow("./", "Back to the countdown", "↑")  # the default tab lives at the site root

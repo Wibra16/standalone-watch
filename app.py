@@ -13,7 +13,7 @@ apply_style()
 
 nav = st.navigation(
     [
-        st.Page("views/home.py", title="Home", url_path="home", default=True),
+        st.Page("views/home.py", title="Home", default=True),
         st.Page("views/updates.py", title="News", url_path="news"),
         st.Page("views/simulator.py", title="Simulator", url_path="simulator"),
         st.Page("views/argentina.py", title="Argentina 2021", url_path="argentina"),
