@@ -163,11 +163,22 @@ def hero(jci_change, fx_last):
       }}
       tick(); setInterval(tick, 1000);
       // Fill exactly one screen, whatever the visitor's window size
+      // Height = window height minus where the hero starts on the page, so the
+      // next section always starts just below the fold. Re-checked on resize
+      // (fullscreen on/off) and periodically, because Streamlit can reset it.
       function fit() {{
         const f = window.frameElement;
-        if (f) f.style.height = (window.parent.innerHeight - 32) + 'px';
+        if (!f) return;
+        const main = window.parent.document.querySelector('section.stMain');
+        const top = f.getBoundingClientRect().top + (main ? main.scrollTop : 0);
+        const h = Math.max(420, window.parent.innerHeight - top) + 'px';
+        if (f.style.height !== h) {{ f.style.height = h; f.setAttribute('height', parseInt(h)); }}
+        // Streamlit's wrapper keeps the original 760px; resize it too so the
+        // news section starts below the fold instead of overlapping
+        const wrap = f.closest('[data-testid="stElementContainer"]');
+        if (wrap && wrap.style.height !== h) {{ wrap.style.height = h; wrap.style.minHeight = h; }}
       }}
-      fit(); window.parent.addEventListener('resize', fit);
+      fit(); window.parent.addEventListener('resize', fit); setInterval(fit, 400);
       // The hero lives in an iframe, so scroll the parent Streamlit page
       function go() {{
         const t = window.parent.document.getElementById('news');
