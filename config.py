@@ -22,21 +22,27 @@ CONSULTATION_CLOSE = datetime(2027, 4, 30, 23, 59, tzinfo=WIB)
 
 # ---------------------------------------------------------------------------
 # Stock universe. Add a row to add a stock.
-# weight = ILLUSTRATIVE share of Indonesia's MSCI index weight (Phase 1 only).
-#          Rough guesses, NOT official MSCI weights. Phase 2 replaces them.
 # ---------------------------------------------------------------------------
 UNIVERSE = [
-    # ticker,    name,                   sector,      fintech, weight
-    ("BBCA.JK", "Bank Central Asia",     "Bank",      False,   0.22),
-    ("BBRI.JK", "Bank Rakyat Indonesia", "Bank",      False,   0.15),
-    ("BMRI.JK", "Bank Mandiri",          "Bank",      False,   0.11),
-    ("BBNI.JK", "Bank Negara Indonesia", "Bank",      False,   0.04),
-    ("TLKM.JK", "Telkom Indonesia",      "Telecom",   False,   0.07),
-    ("ASII.JK", "Astra International",   "Conglom.",  False,   0.06),
-    ("GOTO.JK", "GoTo Gojek Tokopedia",  "Fintech",   True,    0.03),
-    ("ARTO.JK", "Bank Jago",             "Fintech",   True,    0.01),
-    ("BBHI.JK", "Allo Bank",             "Fintech",   True,    0.005),
+    # ticker,    name,                   sector,     fintech
+    ("BBCA.JK", "Bank Central Asia",     "Bank",     False),
+    ("BBRI.JK", "Bank Rakyat Indonesia", "Bank",     False),
+    ("BMRI.JK", "Bank Mandiri",          "Bank",     False),
+    ("BBNI.JK", "Bank Negara Indonesia", "Bank",     False),
+    ("TLKM.JK", "Telkom Indonesia",      "Telecom",  False),
+    ("ASII.JK", "Astra International",   "Conglom.", False),
+    ("GOTO.JK", "GoTo Gojek Tokopedia",  "Fintech",  True),
+    ("ARTO.JK", "Bank Jago",             "Fintech",  True),
+    ("BBHI.JK", "Allo Bank",             "Fintech",  True),
 ]
+
+# ASSUMPTION: our 9 stocks make up roughly this share of the MSCI Indonesia
+# index. Each stock's index weight = its share of our universe's free-float
+# market cap x this number. (iShares blocks free download of EIDO holdings.)
+UNIVERSE_COVERAGE = 0.65
+
+# "Mechanically oversold" flag: more days of forced selling than the median
+# stock in our universe AND a lower price-to-book than the median.
 
 INDEX_TICKER = "^JKSE"   # Jakarta Composite Index
 FX_TICKER = "IDR=X"      # rupiah per 1 USD
@@ -70,5 +76,29 @@ ADV_WINDOW = 20  # days used for average daily traded value
 # ---------------------------------------------------------------------------
 BLACK = "#000000"
 WHITE = "#F5F5F5"
-GREY = "#6B6B6B"   # muted white for labels and rules
+GREY = "#5E5E5E"   # muted white for labels
+RULE = "#1A1A1A"   # hairline dividers
 RED = "#E10600"
+FONT = "'SF Mono', SFMono-Regular, ui-monospace, Menlo, monospace"
+
+# ---------------------------------------------------------------------------
+# News feed (Google News RSS, free, no key)
+# ---------------------------------------------------------------------------
+NEWS_QUERIES = [
+    # query,                              language
+    ("MSCI Indonesia",                     "en"),
+    ("Indonesia standalone market MSCI",   "en"),
+    ("OJK reform stock market",            "en"),
+    ("Jakarta Composite Index",            "en"),
+    ("rupiah",                             "en"),
+    ("MSCI IHSG",                          "id"),
+    ("OJK bursa efek reformasi",           "id"),
+]
+NEWS_START = "2026-10-01"  # ignore older articles
+NEWS_TAGS = {  # tag: keywords (lowercase) that trigger it
+    "MSCI": ["msci", "standalone", "frontier", "reclassif", "index provider"],
+    "Regulator": ["ojk", "idx", "bursa efek", "regulator", " bei "],
+    "Market": ["jci", "ihsg", "composite", "stocks", "saham", "halt", "plunge", "rally", "sell-off"],
+    "Rupiah": ["rupiah", "bank indonesia", "currency"],
+    "Fintech": ["goto", "gojek", "tokopedia", "bank jago", "allo bank", "fintech", "digital bank"],
+}

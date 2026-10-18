@@ -1,7 +1,10 @@
 """
-app.py — Standalone Watch, Phase 1: clickable outflow simulator.
+app.py — Standalone Watch.
+One scrolling page: countdown → news feed → outflow simulator.
 Run with:  streamlit run app.py
 """
+from datetime import datetime
+
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
@@ -9,179 +12,166 @@ import streamlit as st
 import config
 import data
 import model
-from components import apply_style, countdown_banner, disclaimer, fmt_pct, fmt_usd
-from config import BLACK, GREY, RED, WHITE
+import news
+from components import apply_style, fmt_pct, fmt_usd, hero, news_feed, section
+from config import BLACK, FONT, GREY, RED, RULE, WHITE
 
-st.set_page_config(page_title="Standalone Watch", page_icon="▼", layout="wide")
+st.set_page_config(page_title="Standalone Watch", page_icon="▼", layout="centered",
+                   initial_sidebar_state="collapsed")
 apply_style()
-countdown_banner()
 
-# ---------------------------------------------------------------------------
-# Sidebar: assumptions
-# ---------------------------------------------------------------------------
-D = config.DEFAULTS
-with st.sidebar:
-    st.markdown('<div class="sw-label">Assumptions</div>', unsafe_allow_html=True)
-    probability = st.slider("Probability of downgrade (%)", 0, 100, D["probability"])
-    passive_aum_bn = st.number_input("Passive AUM tracking MSCI EM ($bn)", 0, 5000, D["passive_aum_bn"], step=50)
-    indonesia_weight = st.number_input("Indonesia weight in MSCI EM (%)", 0.0, 10.0, D["indonesia_weight"], step=0.1)
-    pct_sell = st.slider("% of passive holders that sell", 0, 100, D["pct_sell"])
-    days_to_exit = st.slider("Days to exit", 1, 120, D["days_to_exit"])
-    participation = st.slider("Participation rate (% of daily volume)", 1, 50, D["participation"])
-    st.caption("All defaults are rough illustrative estimates, not sourced figures.")
 
-# ---------------------------------------------------------------------------
-# Title + scenario toggle
-# ---------------------------------------------------------------------------
-left, right = st.columns([3, 2])
-with left:
-    st.markdown("# STANDALONE WATCH")
-    st.markdown(
-        f'<div class="sw-label">Simulating MSCI\'s proposed downgrade of Indonesia · '
-        f'proposed {config.ANNOUNCEMENT_DATE}</div>',
-        unsafe_allow_html=True,
-    )
-with right:
-    st.write("")
-    scenario = st.segmented_control(
-        "Scenario", list(config.SCENARIOS), default="Standalone", label_visibility="collapsed"
-    ) or "Standalone"
-    disclaimer()
+@st.cache_data(ttl=60 * 60, show_spinner=False)
+def load_news():
+    """Refresh headlines at most once an hour; fall back to the saved CSV."""
+    try:
+        df = news.update()
+    except Exception:
+        df = news.load_saved()
+    return df, datetime.now(config.WIB)
+
 
 # ---------------------------------------------------------------------------
 # Data
 # ---------------------------------------------------------------------------
-with st.spinner("Loading market data…"):
-    fx = data.load_prices(config.FX_TICKER)
-    jci = data.load_prices(config.INDEX_TICKER)
-    prices = {t[0]: data.load_prices(t[0]) for t in config.UNIVERSE}
+fx = data.load_prices(config.FX_TICKER)
+jci = data.load_prices(config.INDEX_TICKER)
+prices = {t[0]: data.load_prices(t[0]) for t in config.UNIVERSE}
 
-missing = [t for t, df in prices.items() if df.empty]
-if missing:
-    st.warning(f"No data from Yahoo Finance for: {', '.join(missing)}")
+# ===========================================================================
+# 1. HERO — the countdown, alone on screen
+# ===========================================================================
+hero(data.change_since(jci), None if fx.empty else fx["Close"].iloc[-1])
 
-# ---------------------------------------------------------------------------
-# Model
-# ---------------------------------------------------------------------------
-factor = config.SCENARIOS[scenario]
-c_out = model.country_outflow(passive_aum_bn * 1e9, indonesia_weight, pct_sell, factor)
+# ===========================================================================
+# 2. NEWS FEED
+# ===========================================================================
+stories, fetched_at = load_news()
+section("01", "The downgrade, day by day",
+        f"UPDATED {fetched_at:%d %b %H:%M} WIB · {len(stories)} STORIES")
+
+lang = st.segmented_control("Language", ["All", "English", "Bahasa"], default="All",
+                            label_visibility="collapsed") or "All"
+shown = stories
+if lang != "All" and not stories.empty:
+    shown = stories[stories["language"] == ("en" if lang == "English" else "id")]
+news_feed(shown, limit_days=3, per_day=4)
+with st.expander("More stories"):
+    news_feed(shown, limit_days=60)
+st.markdown('<p class="sw-note">Headlines and links via Google News. Tags are keyword-based.</p>',
+            unsafe_allow_html=True)
+
+# ===========================================================================
+# 3. SIMULATOR
+# ===========================================================================
+section("02", "Forced-selling simulator", "ILLUSTRATIVE ESTIMATES — NOT INVESTMENT ADVICE")
+
+scenario = st.segmented_control("Scenario", list(config.SCENARIOS), default="Standalone",
+                                label_visibility="collapsed") or "Standalone"
+
+D = config.DEFAULTS
+with st.expander("Assumptions"):
+    a, b = st.columns(2, gap="large")
+    probability = a.slider("Probability of downgrade (%)", 0, 100, D["probability"])
+    pct_sell = a.slider("% of passive holders that sell", 0, 100, D["pct_sell"])
+    days_to_exit = a.slider("Days to exit", 1, 120, D["days_to_exit"])
+    passive_aum_bn = b.number_input("Passive AUM tracking MSCI EM ($bn)", 0, 5000, D["passive_aum_bn"], step=50)
+    indonesia_weight = b.number_input("Indonesia weight in MSCI EM (%)", 0.0, 10.0, D["indonesia_weight"], step=0.1)
+    participation = b.slider("Participation rate (% of daily volume)", 1, 50, D["participation"])
+
+# --- model ---------------------------------------------------------------
+weights = data.free_float_weights(config.UNIVERSE, prices, config.UNIVERSE_COVERAGE)
+c_out = model.country_outflow(passive_aum_bn * 1e9, indonesia_weight, pct_sell, config.SCENARIOS[scenario])
 
 rows = []
-for ticker, name, sector, fintech, weight in config.UNIVERSE:
-    df = prices[ticker]
-    out = model.stock_outflow(c_out, weight)
-    adv = data.avg_daily_traded_value_usd(df, fx)
+for ticker, name, sector, fintech in config.UNIVERSE:
+    info = data.load_info(ticker)
+    w = weights[ticker]
+    out = model.stock_outflow(c_out, w) if w else None
+    adv = data.avg_daily_traded_value_usd(prices[ticker], fx)
+    days = model.days_of_forced_selling(out, adv, participation) if out is not None else None
+    pb = info["priceToBook"]
     rows.append({
-        "Ticker": ticker.replace(".JK", ""),
-        "_ticker": ticker,
-        "Name": name,
-        "Fintech": fintech,
-        "Weight": weight,
-        "Outflow": out,
-        "Expected": model.expected_value(out, probability),
-        "ADV": adv,
-        "Days": model.days_of_forced_selling(out, adv, participation),
-        "Pressure": model.daily_pressure_pct_of_adv(out, adv, days_to_exit),
-        "Since": data.change_since(df),
+        "_ticker": ticker, "Ticker": ticker.replace(".JK", ""), "Name": name, "Fintech": fintech,
+        "Weight": w, "Outflow": out, "ADV": adv, "Days": days,
+        "Since": data.change_since(prices[ticker]), "P/E": info["trailingPE"] or float("nan"), "P/B": pb or float("nan"),
     })
 table = pd.DataFrame(rows)
+table[["Days", "P/E", "P/B"]] = table[["Days", "P/E", "P/B"]].apply(pd.to_numeric, errors="coerce")
+# Relative flag: heavier forced selling AND cheaper than the median name
+table["Oversold"] = (table["Days"] > table["Days"].median()) & (table["P/B"] < table["P/B"].median())
 
-# ---------------------------------------------------------------------------
-# Ticker tape
-# ---------------------------------------------------------------------------
-tape = []
-for r in rows:
-    if r["Since"] is not None:
-        cls = "sw-dn" if r["Since"] < 0 else "sw-up"
-        arrow = "▼" if r["Since"] < 0 else "▲"
-        tape.append(f'{r["Ticker"]} <span class="{cls}">{arrow} {abs(r["Since"]):.1f}%</span>')
-st.markdown(f'<div class="sw-tape">{" &nbsp;·&nbsp; ".join(tape)} &nbsp;&nbsp;'
-            f'<span style="color:{GREY}">SINCE {config.ANNOUNCEMENT_DATE}</span></div>',
-            unsafe_allow_html=True)
+# --- headline numbers ---------------------------------------------------
+m1, m2, m3 = st.columns(3)
+m1.metric("Expected outflow", fmt_usd(model.expected_value(c_out, probability)))
+m2.metric("If downgraded", fmt_usd(c_out))
+m3.metric("Probability", f"{probability}%")
+
+# --- forced seller vs fundamentals ---------------------------------------
 st.write("")
+st.markdown('<div class="sw-label">Forced selling vs fundamentals</div>', unsafe_allow_html=True)
+show = table.sort_values("Days", ascending=False).copy()
+show["Ticker"] = show.apply(lambda r: r["Ticker"] + (" ◆" if r["Fintech"] else ""), axis=1)
+show["Flag"] = show["Oversold"].map({True: "OVERSOLD?", False: ""})
+show[["Outflow", "ADV"]] = show[["Outflow", "ADV"]] / 1e6
+st.dataframe(
+    show[["Ticker", "Weight", "Outflow", "ADV", "Days", "P/B", "P/E", "Since", "Flag"]],
+    hide_index=True, use_container_width=True,
+    column_config={
+        "Weight": st.column_config.NumberColumn("Wt", format="percent"),
+        "Outflow": st.column_config.NumberColumn("Out $m", format="%.0f"),
+        "ADV": st.column_config.NumberColumn("ADV $m", format="%.1f"),
+        "Days": st.column_config.NumberColumn("Days", format="%.1f"),
+        "P/B": st.column_config.NumberColumn(format="%.1f"),
+        "P/E": st.column_config.NumberColumn(format="%.1f"),
+        "Since": st.column_config.NumberColumn("Δ 15 Oct", format="%+.1f%%"),
+        "Flag": st.column_config.TextColumn(""),
+    },
+)
+st.markdown(
+    f'<p class="sw-note">◆ fintech &nbsp;·&nbsp; Days = outflow ÷ (20-day avg traded value × participation) '
+    f'&nbsp;·&nbsp; OVERSOLD? = more forced selling and lower P/B than the median name. '
+    f'The selling is driven by index rules, not valuation.</p>',
+    unsafe_allow_html=True)
 
-# ---------------------------------------------------------------------------
-# Headline metrics
-# ---------------------------------------------------------------------------
-fx_chg = data.change_since(fx)
-m1, m2, m3, m4 = st.columns(4)
-m1.metric("Expected outflow", fmt_usd(model.expected_value(c_out, probability)),
-          help="Country outflow × probability of downgrade")
-m2.metric("Outflow if it happens", fmt_usd(c_out))
-m3.metric("JCI since 15 Oct", fmt_pct(data.change_since(jci)))
-m4.metric("IDR / USD", f"{fx['Close'].iloc[-1]:,.0f}" if not fx.empty else "—",
-          f"{fx_chg:+.1f}% (weaker rupiah)" if fx_chg and fx_chg > 0 else fmt_pct(fx_chg),
-          delta_color="inverse")
-
-st.divider()
-
-# ---------------------------------------------------------------------------
-# Stock picker + chart
-# ---------------------------------------------------------------------------
-labels = {r["_ticker"]: f'{r["Ticker"]} · {r["Name"]}' + ("  [FINTECH]" if r["Fintech"] else "")
-          for r in rows}
-pick = st.selectbox("Stock", list(labels), format_func=labels.get)
+# --- single stock --------------------------------------------------------
+st.write("")
+labels = {r["_ticker"]: f'{r["Ticker"]}  {r["Name"]}' for r in rows}
+pick = st.selectbox("Stock", list(labels), format_func=labels.get, label_visibility="collapsed")
 row = table.set_index("_ticker").loc[pick]
 
-tag = '<span class="sw-tag">FINTECH</span>' if row["Fintech"] else ""
-st.markdown(f'### {row["Ticker"]} {tag}<div class="sw-label">{row["Name"]}</div>', unsafe_allow_html=True)
-
-s1, s2, s3, s4 = st.columns(4)
-s1.metric("Estimated outflow", fmt_usd(row["Outflow"]))
-s2.metric("Days of forced selling", "—" if pd.isna(row["Days"]) else f'{row["Days"]:.1f}',
-          help="Outflow ÷ (avg daily traded value × participation rate)")
-s3.metric(f"Avg daily value ({config.ADV_WINDOW}d)", fmt_usd(row["ADV"]))
-s4.metric("Price since 15 Oct", fmt_pct(row["Since"]))
+s1, s2, s3 = st.columns(3)
+s1.metric("Outflow", fmt_usd(row["Outflow"]))
+s2.metric("Days of forced selling", "—" if pd.isna(row["Days"]) else f'{row["Days"]:.1f}')
+s3.metric("Since 15 Oct", fmt_pct(row["Since"]))
 
 df = prices[pick]
 if not df.empty:
+    after = df.index >= config.ANNOUNCEMENT_DATE
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df.index, y=df["Close"], mode="lines",
-                             line=dict(color=WHITE, width=1.4), name=row["Ticker"],
-                             hovertemplate="%{x|%d %b %Y}<br>IDR %{y:,.0f}<extra></extra>"))
-    fig.add_vline(x=pd.Timestamp(config.ANNOUNCEMENT_DATE).value / 1e6,
-                  line=dict(color=RED, width=1, dash="dot"))
-    fig.add_annotation(x=config.ANNOUNCEMENT_DATE, y=1, yref="paper", text="MSCI PROPOSAL",
-                       showarrow=False, font=dict(color=RED, size=10), xanchor="right", yanchor="top")
+    fig.add_trace(go.Scatter(x=df.index, y=df["Close"], mode="lines", line=dict(color=WHITE, width=1.2),
+                             hovertemplate="%{x|%d %b}  IDR %{y:,.0f}<extra></extra>"))
+    fig.add_trace(go.Scatter(x=df.index[after], y=df["Close"][after], mode="lines+markers",
+                             line=dict(color=RED, width=1.6), marker=dict(size=4),
+                             hovertemplate="%{x|%d %b}  IDR %{y:,.0f}<extra></extra>"))
     fig.update_layout(
-        height=340, margin=dict(l=0, r=0, t=10, b=0), plot_bgcolor=BLACK, paper_bgcolor=BLACK,
-        font=dict(family="IBM Plex Mono, monospace", color=GREY, size=11), showlegend=False,
-        xaxis=dict(showgrid=False, linecolor="#1E1E1E"),
-        yaxis=dict(showgrid=True, gridcolor="#141414", zeroline=False, side="right"),
+        height=260, margin=dict(l=0, r=0, t=10, b=0), plot_bgcolor=BLACK, paper_bgcolor=BLACK,
+        font=dict(family=FONT, color=GREY, size=10), showlegend=False,
+        xaxis=dict(showgrid=False, linecolor=RULE), yaxis=dict(showgrid=False, side="right"),
     )
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
-st.divider()
-
-# ---------------------------------------------------------------------------
-# Full universe table
-# ---------------------------------------------------------------------------
-st.markdown('<div class="sw-label">Universe · ranked by days of forced selling</div>', unsafe_allow_html=True)
-show = table.sort_values("Days", ascending=False)[
-    ["Ticker", "Name", "Weight", "Outflow", "Expected", "ADV", "Days", "Pressure", "Since"]].copy()
-show[["Outflow", "Expected", "ADV"]] = show[["Outflow", "Expected", "ADV"]] / 1e6  # show in $m
-st.dataframe(
-    show, hide_index=True, use_container_width=True,
-    column_config={
-        "Weight": st.column_config.NumberColumn("Index wt*", format="percent"),
-        "Outflow": st.column_config.NumberColumn("Outflow $m", format="%.0f"),
-        "Expected": st.column_config.NumberColumn("Expected $m", format="%.0f"),
-        "ADV": st.column_config.NumberColumn("ADV $m", format="%.1f"),
-        "Days": st.column_config.NumberColumn("Days forced", format="%.1f"),
-        "Pressure": st.column_config.NumberColumn(f"% of ADV/day over {days_to_exit}d", format="%.0f%%"),
-        "Since": st.column_config.NumberColumn("Since 15 Oct", format="%+.1f%%"),
-    },
-)
-st.caption("* Index weights are illustrative guesses (Phase 1). ADV = average daily traded value, "
-           "converted at the latest IDR/USD. Phase 2 replaces weights with free-float estimates.")
-
-with st.expander("Assumptions & methodology"):
+with st.expander("Methodology & assumptions"):
     st.markdown(f"""
 - **Country outflow** = passive AUM × Indonesia weight × % that sell × scenario factor
-  (Stay EM = 0, Frontier = {config.SCENARIOS['Frontier']}, Standalone = 1).
-- **Per-stock outflow** = country outflow × stock's share of Indonesia's index weight (*illustrative in Phase 1*).
-- **Days of forced selling** = per-stock outflow ÷ (20-day average daily traded value × participation rate).
-- **Expected outflow** = outflow × probability of downgrade.
-- Prices and volumes come from Yahoo Finance via yfinance, so they may be delayed or have gaps.
-- The decision date ({config.DECISION_DATE:%d %b %Y}) is **expected**. MSCI has only said "by end of June 2027".
+  (Stay EM 0 · Frontier {config.SCENARIOS['Frontier']} · Standalone 1). The Frontier factor is an assumption.
+- **Index weights**: free-float market cap (shares × (1 − insider holding %) × latest price, from yfinance), as a share of our
+  9 stocks, × an assumed {config.UNIVERSE_COVERAGE:.0%} coverage of MSCI Indonesia. These are not official MSCI weights.
+  The EIDO holdings file would be better, but iShares blocks free download.
+- **ADV** = 20-day average of close × volume, converted at the latest USD/IDR. Post-crash volumes are unusually high,
+  so ADV may overstate normal liquidity.
+- **Days of forced selling** = stock outflow ÷ (ADV × participation rate). **Expected** = outflow × probability.
+- **P/E, P/B** from yfinance (may lag). GoTo is loss-making, so it has no P/E.
+- Prices are from Yahoo Finance and may be delayed. The decision date ({config.DECISION_DATE:%d %b %Y}) is expected,
+  because MSCI has only said "by end of June 2027".
 """)
