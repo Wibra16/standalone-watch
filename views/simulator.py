@@ -6,7 +6,7 @@ import streamlit as st
 import config
 import data
 import model
-from components import (assumption, explainer, fmt_pct, fmt_usd, formula, nav_arrow, section)
+from components import (panel, assumption, explainer, fmt_pct, fmt_usd, formula, nav_arrow, section)
 from config import BLACK, FONT, GREY, RED, RULE, WHITE
 
 with st.spinner("Loading prices for 23 stocks…"):
@@ -16,48 +16,50 @@ with st.spinner("Loading prices for 23 stocks…"):
         data.load_info(t[0])  # warm the fundamentals cache
 
 section("02", "Forced-selling simulator", "ILLUSTRATIVE ESTIMATES — NOT INVESTMENT ADVICE")
-explainer()
+with panel("explainer"):
+    explainer()
 
 SCENARIO_NOTES = {
     "Stay EM": "MSCI backs down. Indonesia stays in the index, so nobody is forced to sell.",
     "Frontier": "Moved to the Frontier index. EM funds sell, but some Frontier funds buy, so about 85% of the selling remains.",
     "Standalone": "Dropped from both indexes. Every fund tracking MSCI EM must sell its Indonesian shares.",
 }
-st.markdown('<div class="sw-label">What MSCI decides</div>', unsafe_allow_html=True)
-scenario = st.segmented_control("Scenario", list(config.SCENARIOS), default="Standalone",
-                                label_visibility="collapsed") or "Standalone"
-st.markdown(f'<p class="sw-note">{SCENARIO_NOTES[scenario]}</p>', unsafe_allow_html=True)
+with panel("scenario"):
+    st.markdown('<div class="sw-label">What MSCI decides</div>', unsafe_allow_html=True)
+    scenario = st.segmented_control("Scenario", list(config.SCENARIOS), default="Standalone",
+                                    label_visibility="collapsed") or "Standalone"
+    st.markdown(f'<p class="sw-note">{SCENARIO_NOTES[scenario]}</p>', unsafe_allow_html=True)
 
-# Results are drawn here, above the sliders, but filled in after the sliders run.
-results = st.container()
+    # Results are drawn here, above the sliders, but filled in after the sliders run.
+    results = st.container()
 
-# --- assumptions: each one a slider plus a plain-English line ----------------
-D = config.DEFAULTS
-st.write("")
-with st.expander("Your assumptions · click to change"):
-    a, b = st.columns(2, gap="large")
-    with a:
-        assumption("A1", "Passive money tracking MSCI EM",
-                   "Dollars in index funds that copy MSCI Emerging Markets, in billions (500 = $500bn). Rough industry estimate.")
-        passive_aum_bn = st.number_input("$ billions", 0, 20000, D["passive_aum_bn"], step=50,
-                                         help="In billions of US dollars. 1,000 = $1 trillion.")
-        assumption("A2", "Indonesia's share of the index",
-                   "Of every $100 in an EM fund, about this much is in Indonesian stocks.")
-        indonesia_weight = st.number_input("%", 0.0, 10.0, D["indonesia_weight"], step=0.1, label_visibility="collapsed")
-        assumption("A3", "Share of funds that actually sell",
-                   "100% means every tracker exits. Lower it if some funds keep holdings or have flexible mandates.")
-        pct_sell = st.slider("pct_sell", 0, 100, D["pct_sell"], format="%d%%", label_visibility="collapsed")
-    with b:
-        assumption("A4", "Probability MSCI goes through with it",
-                   "Your estimate. It turns the 'if downgraded' outflow into an expected outflow.")
-        probability = st.slider("prob", 0, 100, D["probability"], format="%d%%", label_visibility="collapsed")
-        assumption("A5", "Participation rate",
-                   "The share of a stock's normal daily trading that sellers can be without crashing the price. "
-                   "Traders often use 10–25%.")
-        participation = st.slider("part", 1, 50, D["participation"], format="%d%%", label_visibility="collapsed")
-        assumption("A6", "Days funds take to exit",
-                   "If funds squeeze the selling into this many days, how big is it compared with normal trading?")
-        days_to_exit = st.slider("days", 1, 120, D["days_to_exit"], format="%d days", label_visibility="collapsed")
+    # --- assumptions: each one a slider plus a plain-English line ----------------
+    D = config.DEFAULTS
+    st.write("")
+    with st.expander("Your assumptions · click to change"):
+        a, b = st.columns(2, gap="large")
+        with a:
+            assumption("A1", "Passive money tracking MSCI EM",
+                       "Dollars in index funds that copy MSCI Emerging Markets, in billions (500 = $500bn). Rough industry estimate.")
+            passive_aum_bn = st.number_input("$ billions", 0, 20000, D["passive_aum_bn"], step=50,
+                                             help="In billions of US dollars. 1,000 = $1 trillion.")
+            assumption("A2", "Indonesia's share of the index",
+                       "Of every $100 in an EM fund, about this much is in Indonesian stocks.")
+            indonesia_weight = st.number_input("%", 0.0, 10.0, D["indonesia_weight"], step=0.1, label_visibility="collapsed")
+            assumption("A3", "Share of funds that actually sell",
+                       "100% means every tracker exits. Lower it if some funds keep holdings or have flexible mandates.")
+            pct_sell = st.slider("pct_sell", 0, 100, D["pct_sell"], format="%d%%", label_visibility="collapsed")
+        with b:
+            assumption("A4", "Probability MSCI goes through with it",
+                       "Your estimate. It turns the 'if downgraded' outflow into an expected outflow.")
+            probability = st.slider("prob", 0, 100, D["probability"], format="%d%%", label_visibility="collapsed")
+            assumption("A5", "Participation rate",
+                       "The share of a stock's normal daily trading that sellers can be without crashing the price. "
+                       "Traders often use 10–25%.")
+            participation = st.slider("part", 1, 50, D["participation"], format="%d%%", label_visibility="collapsed")
+            assumption("A6", "Days funds take to exit",
+                       "If funds squeeze the selling into this many days, how big is it compared with normal trading?")
+            days_to_exit = st.slider("days", 1, 120, D["days_to_exit"], format="%d days", label_visibility="collapsed")
 
 # --- model ---------------------------------------------------------------
 usd_idr = fx["Close"].iloc[-1] if not fx.empty else None
@@ -108,68 +110,70 @@ with results:
     ], fmt_usd(expected))
     st.write("")
 
-# --- forced seller vs fundamentals ---------------------------------------
-st.write("")
-st.markdown('<div class="sw-label">Forced selling vs fundamentals</div>', unsafe_allow_html=True)
-show = table.sort_values("Days", ascending=False).copy()
-show["Ticker"] = show.apply(lambda r: r["Ticker"] + (" ◆" if r["Fintech"] else ""), axis=1)
-show["Flag"] = show["Oversold"].map({True: "OVERSOLD?", False: ""})
-show.loc[show["Status"] != "", "Flag"] = show["Status"]
-show[["Outflow", "ADV"]] = show[["Outflow", "ADV"]] / 1e6
-st.dataframe(
-    show[["Ticker", "Weight", "Outflow", "ADV", "Days", "P/B", "P/E", "Since", "Flag"]],
-    hide_index=True, use_container_width=True, height=(len(show) + 1) * 35 + 3,
-    column_config={
-        "Weight": st.column_config.NumberColumn("Wt", format="percent"),
-        "Outflow": st.column_config.NumberColumn("Out $m", format="%.0f"),
-        "ADV": st.column_config.NumberColumn("ADV $m", format="%.1f"),
-        "Days": st.column_config.NumberColumn("Days", format="%.1f"),
-        "P/B": st.column_config.NumberColumn(format="%.1f"),
-        "P/E": st.column_config.NumberColumn(format="%.1f"),
-        "Since": st.column_config.NumberColumn("Δ 15 Oct", format="%+.1f%%"),
-        "Flag": st.column_config.TextColumn(""),
-    },
-)
-st.markdown(
-    f'<p class="sw-note">◆ fintech &nbsp;·&nbsp; Days = outflow ÷ (20-day avg traded value × participation) '
-    f'&nbsp;·&nbsp; OVERSOLD? = more forced selling and lower P/B than the median name. '
-    f'The selling is driven by index rules, not valuation.</p>',
-    unsafe_allow_html=True)
-
-# --- single stock --------------------------------------------------------
-st.write("")
-labels = {r["_ticker"]: f'{r["Ticker"]}  {r["Name"]}' for r in rows}
-pick = st.selectbox("Stock", list(labels), format_func=labels.get, label_visibility="collapsed")
-row = table.set_index("_ticker").loc[pick]
-
-s1, s2, s3, s4 = st.columns(4)
-s1.metric("Must be sold", fmt_usd(row["Outflow"]))
-s2.metric("Days of forced selling", "—" if pd.isna(row["Days"]) else f'{row["Days"]:,.0f}')
-s3.metric(f"× normal volume", "—" if pd.isna(row["Pressure"]) else f'{row["Pressure"] / 100:,.1f}×',
-          help=f"Selling it all in {days_to_exit} days (A6), compared with a normal day's trading")
-s4.metric("Since 15 Oct", fmt_pct(row["Since"]))
-if not pd.isna(row["Days"]):
+with panel("table"):
+    # --- forced seller vs fundamentals ---------------------------------------
+    st.write("")
+    st.markdown('<div class="sw-label">Forced selling vs fundamentals</div>', unsafe_allow_html=True)
+    show = table.sort_values("Days", ascending=False).copy()
+    show["Ticker"] = show.apply(lambda r: r["Ticker"] + (" ◆" if r["Fintech"] else ""), axis=1)
+    show["Flag"] = show["Oversold"].map({True: "OVERSOLD?", False: ""})
+    show.loc[show["Status"] != "", "Flag"] = show["Status"]
+    show[["Outflow", "ADV"]] = show[["Outflow", "ADV"]] / 1e6
+    st.dataframe(
+        show[["Ticker", "Weight", "Outflow", "ADV", "Days", "P/B", "P/E", "Since", "Flag"]],
+        hide_index=True, use_container_width=True, height=(len(show) + 1) * 35 + 3,
+        column_config={
+            "Weight": st.column_config.NumberColumn("Wt", format="percent"),
+            "Outflow": st.column_config.NumberColumn("Out $m", format="%.0f"),
+            "ADV": st.column_config.NumberColumn("ADV $m", format="%.1f"),
+            "Days": st.column_config.NumberColumn("Days", format="%.1f"),
+            "P/B": st.column_config.NumberColumn(format="%.1f"),
+            "P/E": st.column_config.NumberColumn(format="%.1f"),
+            "Since": st.column_config.NumberColumn("Δ 15 Oct", format="%+.1f%%"),
+            "Flag": st.column_config.TextColumn(""),
+        },
+    )
     st.markdown(
-        f'<p class="sw-note">Funds would need to sell {fmt_usd(row["Outflow"])} of {row["Ticker"]}. '
-        f'About {fmt_usd(row["ADV"])} of it trades on a normal day, and sellers can be {participation}% of that, '
-        f'so the exit takes about <b style="color:#F5F5F5;font-weight:400">{row["Days"]:,.0f} trading days</b>.</p>',
+        f'<p class="sw-note">◆ fintech &nbsp;·&nbsp; Days = outflow ÷ (20-day avg traded value × participation) '
+        f'&nbsp;·&nbsp; OVERSOLD? = more forced selling and lower P/B than the median name. '
+        f'The selling is driven by index rules, not valuation.</p>',
         unsafe_allow_html=True)
 
-df = prices[pick]
-if not df.empty:
-    after = df.index >= config.ANNOUNCEMENT_DATE
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df.index, y=df["Close"], mode="lines", line=dict(color=WHITE, width=1.2),
-                             hovertemplate="%{x|%d %b}  IDR %{y:,.0f}<extra></extra>"))
-    fig.add_trace(go.Scatter(x=df.index[after], y=df["Close"][after], mode="lines+markers",
-                             line=dict(color=RED, width=1.6), marker=dict(size=4),
-                             hovertemplate="%{x|%d %b}  IDR %{y:,.0f}<extra></extra>"))
-    fig.update_layout(
-        height=260, margin=dict(l=0, r=0, t=10, b=0), plot_bgcolor=BLACK, paper_bgcolor=BLACK,
-        font=dict(family=FONT, color=GREY, size=10), showlegend=False,
-        xaxis=dict(showgrid=False, linecolor=RULE), yaxis=dict(showgrid=False, side="right"),
-    )
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+with panel("stock"):
+    # --- single stock --------------------------------------------------------
+    st.write("")
+    labels = {r["_ticker"]: f'{r["Ticker"]}  {r["Name"]}' for r in rows}
+    pick = st.selectbox("Stock", list(labels), format_func=labels.get, label_visibility="collapsed")
+    row = table.set_index("_ticker").loc[pick]
+
+    s1, s2, s3, s4 = st.columns(4)
+    s1.metric("Must be sold", fmt_usd(row["Outflow"]))
+    s2.metric("Days of forced selling", "—" if pd.isna(row["Days"]) else f'{row["Days"]:,.0f}')
+    s3.metric(f"× normal volume", "—" if pd.isna(row["Pressure"]) else f'{row["Pressure"] / 100:,.1f}×',
+              help=f"Selling it all in {days_to_exit} days (A6), compared with a normal day's trading")
+    s4.metric("Since 15 Oct", fmt_pct(row["Since"]))
+    if not pd.isna(row["Days"]):
+        st.markdown(
+            f'<p class="sw-note">Funds would need to sell {fmt_usd(row["Outflow"])} of {row["Ticker"]}. '
+            f'About {fmt_usd(row["ADV"])} of it trades on a normal day, and sellers can be {participation}% of that, '
+            f'so the exit takes about <b style="color:#F5F5F5;font-weight:400">{row["Days"]:,.0f} trading days</b>.</p>',
+            unsafe_allow_html=True)
+
+    df = prices[pick]
+    if not df.empty:
+        after = df.index >= config.ANNOUNCEMENT_DATE
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=df.index, y=df["Close"], mode="lines", line=dict(color=WHITE, width=1.2),
+                                 hovertemplate="%{x|%d %b}  IDR %{y:,.0f}<extra></extra>"))
+        fig.add_trace(go.Scatter(x=df.index[after], y=df["Close"][after], mode="lines+markers",
+                                 line=dict(color=RED, width=1.6), marker=dict(size=4),
+                                 hovertemplate="%{x|%d %b}  IDR %{y:,.0f}<extra></extra>"))
+        fig.update_layout(
+            height=260, margin=dict(l=0, r=0, t=10, b=0), plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(family=FONT, color=GREY, size=10), showlegend=False,
+            xaxis=dict(showgrid=False, linecolor=RULE), yaxis=dict(showgrid=False, side="right"),
+        )
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
 with st.expander("Methodology & assumptions"):
     st.markdown(f"""

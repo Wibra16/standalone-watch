@@ -100,6 +100,8 @@ BLACK = "#000000"
 WHITE = "#F5F5F5"
 GREY = "#5E5E5E"   # muted white for labels
 RULE = "#1A1A1A"   # hairline dividers
+PANEL = "#0B0B0B"  # section boxes, a shade lighter than the page
+PANEL_EDGE = "#1E1E1E"
 RED = "#E10600"
 FONT = "'SF Mono', SFMono-Regular, ui-monospace, Menlo, monospace"
 

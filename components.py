@@ -8,7 +8,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 import config
-from config import BLACK, FONT, GREY, RED, RULE, WHITE
+from config import BLACK, FONT, GREY, PANEL, PANEL_EDGE, RED, RULE, WHITE
 
 
 def apply_style():
@@ -64,6 +64,17 @@ def apply_style():
         .sw-item a:hover {{ color: {RED} !important; }}
         .sw-item .s {{ color: {GREY}; font-size: .68rem; margin-top: 2px; }}
         .sw-item .s b {{ color: {RED}; font-weight: 400; }}
+        /* panels: barely-lighter boxes that keep sections apart */
+        [class*="st-key-panel-"] {{
+            background: {PANEL}; border: 1px solid {PANEL_EDGE} !important; border-radius: 10px;
+            padding: 1.8rem 2rem 2rem !important; margin-bottom: 1.4rem;
+        }}
+        [class*="st-key-panel-"] .sw-steps, [class*="st-key-panel-"] .sw-stats {{
+            border: none; margin-top: 0; margin-bottom: 0;
+        }}
+        [class*="st-key-panel-"] .sw-step:first-child, [class*="st-key-panel-"] .sw-stat:first-child {{ padding-left: 0; }}
+        @media (max-width: 640px) {{ [class*="st-key-panel-"] {{ padding: 1.2rem 1.1rem 1.4rem !important; }} }}
+
         /* every slider: room for the floating value above the handle */
         [data-testid="stSlider"] {{ padding-top: 1.8rem; }}
 
@@ -135,6 +146,12 @@ def apply_style():
         """,
         unsafe_allow_html=True,
     )
+
+
+def panel(name):
+    """A softly lit box that separates one block of content from the next.
+    Use as:  with panel("chart"): ...   (name must be unique on the page)"""
+    return st.container(border=True, key=f"panel-{name}")
 
 
 def section(number, title, meta="", anchor=""):
