@@ -24,22 +24,44 @@ CONSULTATION_CLOSE = datetime(2027, 4, 30, 23, 59, tzinfo=WIB)
 # Stock universe. Add a row to add a stock.
 # ---------------------------------------------------------------------------
 UNIVERSE = [
-    # ticker,    name,                   sector,     fintech
-    ("BBCA.JK", "Bank Central Asia",     "Bank",     False),
-    ("BBRI.JK", "Bank Rakyat Indonesia", "Bank",     False),
-    ("BMRI.JK", "Bank Mandiri",          "Bank",     False),
-    ("BBNI.JK", "Bank Negara Indonesia", "Bank",     False),
-    ("TLKM.JK", "Telkom Indonesia",      "Telecom",  False),
-    ("ASII.JK", "Astra International",   "Conglom.", False),
-    ("GOTO.JK", "GoTo Gojek Tokopedia",  "Fintech",  True),
-    ("ARTO.JK", "Bank Jago",             "Fintech",  True),
-    ("BBHI.JK", "Allo Bank",             "Fintech",  True),
+    # Top 20 IDX stocks by total market cap (yfinance, 18 Oct 2026),
+    # plus three digital-finance names as the fintech focus.
+    # ticker,    name,                        sector,        fintech
+    ("BBCA.JK", "Bank Central Asia",          "Bank",        False),
+    ("DCII.JK", "DCI Indonesia",              "Data centres", False),
+    ("BBRI.JK", "Bank Rakyat Indonesia",      "Bank",        False),
+    ("BYAN.JK", "Bayan Resources",            "Coal",        False),
+    ("BMRI.JK", "Bank Mandiri",               "Bank",        False),
+    ("AMMN.JK", "Amman Mineral",              "Mining",      False),
+    ("BREN.JK", "Barito Renewables",          "Energy",      False),
+    ("TLKM.JK", "Telkom Indonesia",           "Telecom",     False),
+    ("ASII.JK", "Astra International",        "Conglom.",    False),
+    ("BRPT.JK", "Barito Pacific",             "Conglom.",    False),
+    ("DSSA.JK", "Dian Swastatika Sentosa",    "Energy",      False),
+    ("BBNI.JK", "Bank Negara Indonesia",      "Bank",        False),
+    ("TPIA.JK", "Chandra Asri Pacific",       "Chemicals",   False),
+    ("CASA.JK", "Capital Financial Indonesia", "Financials", False),
+    ("UNTR.JK", "United Tractors",            "Industrial",  False),
+    ("PANI.JK", "Pantai Indah Kapuk Dua",     "Property",    False),
+    ("AADI.JK", "Adaro Andalan Indonesia",    "Coal",        False),
+    ("ICBP.JK", "Indofood CBP",               "Consumer",    False),
+    ("HMSP.JK", "HM Sampoerna",               "Consumer",    False),
+    ("ADRO.JK", "Alamtri Resources",          "Mining",      False),
+    # fintech / digital focus
+    ("GOTO.JK", "GoTo Gojek Tokopedia",       "Fintech",     True),
+    ("ARTO.JK", "Bank Jago",                  "Fintech",     True),
+    ("BBHI.JK", "Allo Bank",                  "Fintech",     True),
 ]
 
-# ASSUMPTION: our 9 stocks make up roughly this share of the MSCI Indonesia
+# ASSUMPTION: our stocks make up roughly this share of the MSCI Indonesia
 # index. Each stock's index weight = its share of our universe's free-float
 # market cap x this number. (iShares blocks free download of EIDO holdings.)
-UNIVERSE_COVERAGE = 0.65
+UNIVERSE_COVERAGE = 0.85
+
+# ASSUMPTION: a stock trading less than this per day (USD) is treated as
+# outside the MSCI index (MSCI screens out very illiquid names), so index
+# funds aren't forced to sell it. Its weight is set to 0.
+MIN_ADV_USD = 100_000
 
 # "Mechanically oversold" flag: more days of forced selling than the median
 # stock in our universe AND a lower price-to-book than the median.

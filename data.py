@@ -55,7 +55,8 @@ def avg_daily_traded_value_usd(df, fx_df, window=config.ADV_WINDOW):
 @st.cache_data(ttl=24 * 60 * 60, show_spinner=False)  # fundamentals change slowly
 def load_info(ticker):
     """Float shares, P/E and P/B from yfinance. Missing values come back as None."""
-    keys = ["sharesOutstanding", "impliedSharesOutstanding", "heldPercentInsiders", "trailingPE", "priceToBook"]
+    keys = ["sharesOutstanding", "impliedSharesOutstanding", "heldPercentInsiders",
+            "trailingEps", "bookValue", "financialCurrency"]
     try:
         info = yf.Ticker(ticker).info
         return {k: info.get(k) for k in keys}
@@ -63,21 +64,37 @@ def load_info(ticker):
         return {k: None for k in keys}
 
 
-def free_float_weights(universe, prices, coverage):
+def valuation(info, price_idr, usd_idr):
+    """P/E and P/B computed ourselves. For companies that report in USD
+    (BREN, AMMN, BYAN...), yfinance gives book value in USD but price in
+    rupiah, so its own P/B comes out in the hundreds of thousands.
+    (EPS is already in rupiah, so only book value needs converting.)"""
+    fx = usd_idr if info.get("financialCurrency") == "USD" else 1
+    eps, book = info.get("trailingEps"), info.get("bookValue")
+    pe = price_idr / eps if eps and eps > 0 else None   # no P/E when loss-making
+    pb = price_idr / (book * fx) if book and book > 0 else None
+    return pe, pb
+
+
+def free_float_weights(universe, prices, coverage, eligible=None):
     """Approximate each stock's weight in MSCI Indonesia.
 
     free-float market cap = shares x (1 - % held by insiders) x latest price
     (We take the larger of yfinance's two share counts: one of them is
     occasionally wrong by ~100x, e.g. BBNI.)
     weight = stock's share of the universe's free-float cap x coverage
+    Stocks not in `eligible` (failed the liquidity screen) get weight 0.
     Returns {ticker: weight}, or None for stocks we can't price.
     """
     caps = {}
     for ticker, *_ in universe:
+        if eligible is not None and ticker not in eligible:
+            caps[ticker] = 0
+            continue
         info = load_info(ticker)
         df = prices[ticker]
         shares = max(info["sharesOutstanding"] or 0, info["impliedSharesOutstanding"] or 0)
         free_float = 1 - (info["heldPercentInsiders"] or 0)
         caps[ticker] = shares * free_float * df["Close"].iloc[-1] if shares and not df.empty else None
     total = sum(c for c in caps.values() if c)
-    return {t: (c / total * coverage if c else None) for t, c in caps.items()}
+    return {t: (c / total * coverage if c is not None else None) for t, c in caps.items()}

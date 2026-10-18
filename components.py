@@ -53,16 +53,54 @@ def apply_style():
         .sw-item a:hover {{ color: {RED} !important; }}
         .sw-item .s {{ color: {GREY}; font-size: .68rem; margin-top: 2px; }}
         .sw-item .s b {{ color: {RED}; font-weight: 400; }}
-        @media (max-width: 640px) {{ .sw-day {{ grid-template-columns: 1fr; }} }}
+        /* section nav arrow */
+        .sw-nav {{ display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 5rem 0 1rem; }}
+        .sw-nav a {{ width: 52px; height: 52px; border: 1px solid {RULE}; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; font-size: 20px;
+            color: {WHITE} !important; text-decoration: none; transition: border-color .2s, color .2s; }}
+        .sw-nav a:hover {{ border-color: {RED}; color: {RED} !important; }}
+        .sw-nav span {{ font-size: .62rem; letter-spacing: .22em; color: {GREY}; text-transform: uppercase; }}
+
+        /* explainer steps */
+        .sw-steps {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 0;
+            border-top: 1px solid {RULE}; border-bottom: 1px solid {RULE}; margin-bottom: 2.5rem; }}
+        .sw-step {{ padding: 1.4rem 1.4rem 1.6rem 0; }}
+        .sw-step + .sw-step {{ padding-left: 1.4rem; border-left: 1px solid {RULE}; }}
+        .sw-step .i {{ color: {RED}; font-size: .7rem; letter-spacing: .14em; }}
+        .sw-step .h {{ color: {WHITE}; font-size: .9rem; margin: .6rem 0 .5rem; }}
+        .sw-step .b {{ color: {GREY}; font-size: .74rem; line-height: 1.65; }}
+        .sw-step .b b {{ color: {WHITE}; font-weight: 400; }}
+
+        /* live formulas */
+        .sw-formula {{ padding: 1rem 0; border-bottom: 1px solid {RULE}; }}
+        .sw-formula .l {{ font-size: .62rem; letter-spacing: .18em; color: {GREY}; margin-bottom: .6rem; }}
+        .sw-formula .eq {{ display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px 12px; }}
+        .sw-formula .t {{ display: flex; flex-direction: column; }}
+        .sw-formula .v {{ color: {WHITE}; font-size: 1.05rem; }}
+        .sw-formula .v.r {{ color: {RED}; }}
+        .sw-formula .c {{ color: {GREY}; font-size: .58rem; letter-spacing: .1em; margin-top: 3px;
+            text-transform: uppercase; }}
+        .sw-formula .op {{ color: {GREY}; font-size: 1.05rem; }}
+
+        /* assumption cards */
+        .sw-a {{ font-size: .8rem; color: {WHITE}; margin-top: 1.4rem; }}
+        .sw-a .k {{ color: {RED}; font-size: .65rem; letter-spacing: .12em; margin-right: 6px; }}
+        .sw-a .x {{ color: {GREY}; font-size: .7rem; line-height: 1.6; margin-top: .3rem; }}
+
+        @media (max-width: 640px) {{
+            .sw-day {{ grid-template-columns: 1fr; }}
+            .sw-steps {{ grid-template-columns: 1fr; }}
+            .sw-step + .sw-step {{ padding-left: 0; border-left: none; border-top: 1px solid {RULE}; }}
+        }}
         </style>
         """,
         unsafe_allow_html=True,
     )
 
 
-def section(number, title, meta=""):
+def section(number, title, meta="", anchor=""):
     st.markdown(
-        f'<div class="sw-section"><div><span class="n">{number}</span>&nbsp;&nbsp;'
+        f'<div id="{anchor}" class="sw-section"><div><span class="n">{number}</span>&nbsp;&nbsp;'
         f'<span class="t">{title}</span></div><span class="m">{meta}</span></div>',
         unsafe_allow_html=True,
     )
@@ -92,8 +130,10 @@ def hero(jci_change, fx_last):
       .red {{ color:{RED}; }}
       .sub {{ font-size:12px; color:{GREY}; letter-spacing:.06em; line-height:2; }}
       .sub span {{ color:{WHITE}; }}
-      .down {{ position:absolute; bottom:28px; font-size:10px; letter-spacing:.24em; color:{GREY};
-               animation:b 2.4s ease-in-out infinite; }}
+      .down {{ position:absolute; bottom:36px; background:none; border:1px solid {RULE}; color:{WHITE};
+               width:52px; height:52px; border-radius:50%; font-size:20px; cursor:pointer;
+               font-family:{FONT}; animation:b 2.4s ease-in-out infinite; transition:border-color .2s; }}
+      .down:hover {{ border-color:{RED}; color:{RED}; }}
       @keyframes b {{ 50% {{ transform:translateY(6px); opacity:.5; }} }}
     </style>
     <div class="wrap">
@@ -109,7 +149,7 @@ def hero(jci_change, fx_last):
         Consultation closes in <span id="c">—</span> days<br>
         JCI <span class="red">{jci}</span> &nbsp;·&nbsp; USD/IDR <span>{fx}</span> &nbsp; since proposal
       </div>
-      <div class="down">SCROLL ↓</div>
+      <button class="down" id="down" title="Latest news">↓</button>
     </div>
     <script>
       const p = n => String(n).padStart(2, '0');
@@ -122,9 +162,73 @@ def hero(jci_change, fx_last):
         document.getElementById('c').textContent = Math.max(0, Math.ceil(({close_ms} - Date.now()) / 864e5));
       }}
       tick(); setInterval(tick, 1000);
+      // Fill exactly one screen, whatever the visitor's window size
+      function fit() {{
+        const f = window.frameElement;
+        if (f) f.style.height = (window.parent.innerHeight - 32) + 'px';
+      }}
+      fit(); window.parent.addEventListener('resize', fit);
+      // The hero lives in an iframe, so scroll the parent Streamlit page
+      function go() {{
+        const t = window.parent.document.getElementById('news');
+        if (t) {{ t.scrollIntoView({{ behavior: 'smooth' }}); return; }}
+        // Page still loading: just move down one screen
+        const main = window.parent.document.querySelector('section.stMain');
+        if (main) main.scrollBy({{ top: window.parent.innerHeight, behavior: 'smooth' }});
+      }}
+      document.getElementById('down').addEventListener('click', go);
     </script>
     """
     components.html(page, height=760)
+
+
+def nav_arrow(target, label, symbol="↓"):
+    """Round ↓ button that jumps to another section (plain anchor link)."""
+    st.markdown(
+        f'<div class="sw-nav"><a href="#{target}">{symbol}</a><span>{label}</span></div>',
+        unsafe_allow_html=True,
+    )
+
+
+def explainer():
+    """Three-step plain-English story of forced selling."""
+    steps = [
+        ("Index funds copy a list",
+         "Trillions of dollars sit in passive funds that hold exactly what's in MSCI's Emerging Markets "
+         "index. They don't pick stocks. They mirror the list."),
+        ("The list changes",
+         "If MSCI moves Indonesia to Standalone, Indonesian stocks drop off that list. Every fund copying it "
+         "must sell its Indonesian shares, whatever the price or the company's quality."),
+        ("The market can only absorb so much",
+         "Only so much stock changes hands each day. Sell too fast and the price collapses, so funds spread "
+         "it out. The days this takes is the <b>days of forced selling</b>, a measure of how long the "
+         "pressure lasts."),
+    ]
+    cells = "".join(
+        f'<div class="sw-step"><div class="i">{i:02d}</div><div class="h">{h}</div><div class="b">{b}</div></div>'
+        for i, (h, b) in enumerate(steps, 1)
+    )
+    st.markdown(f'<div class="sw-steps">{cells}</div>', unsafe_allow_html=True)
+
+
+def formula(label, parts, result):
+    """One line like:  IF DOWNGRADED  $500bn × 1.5% × 100% × 1.0 = $7.50bn
+    parts = [(value, caption), ...] so each number is labelled underneath."""
+    terms = '<span class="op">×</span>'.join(
+        f'<span class="t"><span class="v">{v}</span><span class="c">{c}</span></span>' for v, c in parts)
+    st.markdown(
+        f'<div class="sw-formula"><div class="l">{label}</div><div class="eq">{terms}'
+        f'<span class="op">=</span><span class="t"><span class="v r">{result}</span><span class="c">&nbsp;</span>'
+        f'</span></div></div>',
+        unsafe_allow_html=True,
+    )
+
+
+def assumption(code, title, text):
+    st.markdown(
+        f'<div class="sw-a"><span class="k">{code}</span> {title}<div class="x">{text}</div></div>',
+        unsafe_allow_html=True,
+    )
 
 
 def news_feed(df, limit_days, skip_days=0, per_day=None):
