@@ -64,6 +64,9 @@ def apply_style():
         .sw-item a:hover {{ color: {RED} !important; }}
         .sw-item .s {{ color: {GREY}; font-size: .68rem; margin-top: 2px; }}
         .sw-item .s b {{ color: {RED}; font-weight: 400; }}
+        /* every slider: room for the floating value above the handle */
+        [data-testid="stSlider"] {{ padding-top: 1.8rem; }}
+
         /* section nav arrow */
         .sw-nav {{ display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 5rem 0 1rem; }}
         .sw-nav a {{ width: 52px; height: 52px; border: 1px solid {RULE}; border-radius: 50%;
