@@ -113,9 +113,9 @@ NEWS_QUERIES = [
     ("OJK reform stock market",            "en"),
     ("Jakarta Composite Index",            "en"),
     ("rupiah",                             "en"),
-    ("MSCI IHSG",                          "id"),
-    ("OJK bursa efek reformasi",           "id"),
+    ("IDX Indonesia stocks MSCI",          "en"),
 ]
+ENGLISH_ONLY = True   # drop non-English headlines (Bahasa, French, ...) that slip into the feeds
 NEWS_START = "2026-10-01"  # ignore older articles
 NEWS_TAGS = {  # tag: keywords (lowercase) that trigger it
     "MSCI": ["msci", "standalone", "frontier", "reclassif", "index provider"],

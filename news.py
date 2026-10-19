@@ -33,6 +33,24 @@ def _clean_title(title, source):
     return title[: -len(suffix)] if source and title.endswith(suffix) else title
 
 
+# Common short words: English headlines almost always contain one; other
+# languages Google mixes in (Bahasa, French, Spanish...) rarely do.
+_EN = {"the", "a", "an", "of", "to", "in", "on", "for", "as", "and", "is", "are", "with", "after", "amid",
+       "over", "its", "at", "by", "from", "could", "may", "will", "says", "why", "what", "how", "into"}
+_NOT_EN = {"yang", "dan", "di", "ke", "dari", "untuk", "ini", "saham", "bursa", "tak", "jadi", "usai", "akan",
+           "bukan", "ada", "bisa", "masih", "soal", "terhadap", "oleh", "pasar", "modal", "tertekan", "anjlok",
+           "naik", "turun", "kata", "akibat", "begini", "hari", "harga", "nabi", "asing", "dana", "keluar",
+           "le", "la", "les", "des", "du", "et", "pour", "sur", "dans", "contre", "est", "una", "el", "los", "por"}
+
+
+def is_english(title):
+    words = re.findall(r"[a-zà-ÿ']+", title.lower())
+    if not words or any(ord(ch) > 591 for ch in title):     # non-Latin scripts
+        return False
+    en, other = sum(w in _EN for w in words), sum(w in _NOT_EN for w in words)
+    return other == 0 or en > other      # searches are English, so keep unless it looks foreign
+
+
 def _tags(text):
     text = text.lower()
     return ",".join(tag for tag, words in config.NEWS_TAGS.items() if any(w in text for w in words))
@@ -63,6 +81,8 @@ def fetch():
             published = datetime(*e.published_parsed[:6], tzinfo=timezone.utc) if e.get("published_parsed") else None
             if not published or published.strftime("%Y-%m-%d") < config.NEWS_START:
                 continue
+            if config.ENGLISH_ONLY and not is_english(title):
+                continue
             rows.append({"published": published, "headline": title, "source": source,
                          "link": e.get("link", ""), "language": lang, "tags": _tags(title)})
     df = pd.DataFrame(rows)
@@ -87,6 +107,8 @@ def update():
     new = fetch()
     old = load_saved()
     df = pd.concat([new, old]).drop_duplicates("link") if not old.empty else new
+    if config.ENGLISH_ONLY and not df.empty:
+        df = df[df["headline"].map(is_english)]
     if not df.empty:
         df = df.sort_values("published", ascending=False)
         df.to_csv(NEWS_CSV, index=False)

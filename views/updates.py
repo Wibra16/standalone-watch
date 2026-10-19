@@ -24,11 +24,7 @@ section("01", "The downgrade, day by day",
         f"UPDATED {fetched_at:%d %b %H:%M} WIB · {len(stories)} STORIES")
 
 with panel("feed"):
-    lang = st.segmented_control("Language", ["All", "English", "Bahasa"], default="All",
-                                label_visibility="collapsed") or "All"
     shown = stories
-    if lang != "All" and not stories.empty:
-        shown = stories[stories["language"] == ("en" if lang == "English" else "id")]
     news_feed(shown, limit_days=3, per_day=4)
     with st.expander("More stories"):
         news_feed(shown, limit_days=60)

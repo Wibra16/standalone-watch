@@ -215,7 +215,7 @@ function newsDays(stories, limitDays, perDay) {
                   d.toLocaleDateString('en-GB', { weekday: 'short' });
     const items = g.items.slice(0, perDay ?? g.items.length).map(s =>
       `<div class="item"><a href="${esc(s.l)}" target="_blank" rel="noopener">${esc(s.h)}</a>` +
-      `<div class="s">${esc(s.s)}${s.lang === 'id' ? ' · ID' : ''} &nbsp; ${s.tags.map(t => `<i>${esc(t)}</i>`).join(' · ')}</div></div>`).join('');
+      `<div class="s">${esc(s.s)} &nbsp; ${s.tags.map(t => `<i>${esc(t)}</i>`).join(' · ')}</div></div>`).join('');
     return `<div class="day"><div class="d">${label}</div><div>${items}</div></div>`;
   }).join('');
 }
@@ -227,12 +227,11 @@ async function renderNews(view) {
   const updated = new Date(S.news.generated).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
   view.innerHTML = section('01', 'The downgrade, day by day', `Updated ${updated} WIB · ${all.length} stories`) + marketPanel() + `
     <div class="panel">
-      <div class="seg" id="lang">${['All', 'English', 'Bahasa'].map(l => `<button class="${l === newsLang ? 'on' : ''}">${l}</button>`).join('')}</div>
-      <div style="margin-top:12px">${newsDays(shown, 3, 4)}</div>
+      <div class="label" style="margin-bottom:0">Latest headlines</div>
+      <div>${newsDays(shown, 3, 4)}</div>
       <details class="drop"><summary>More stories</summary>${newsDays(shown, 120)}</details>
       <p class="note">Headlines and links via Google News. Tags are keyword-based.</p>
     </div>` + navArrow('#/simulator', 'Simulate the sell-off');
-  $$('#lang button', view).forEach(b => b.addEventListener('click', () => { newsLang = b.textContent; renderNews(view); }));
   marketWire(view);
 }
 
