@@ -179,6 +179,7 @@ function marketPanel() {
     </div>
     <div class="metrics" style="--cols:4" id="mkStats"></div>
     <div id="mkChart" class="candles"></div>
+    <p class="zhint"><b>Zoom:</b> click and drag across the chart (on a phone, drag with one finger) &nbsp;·&nbsp; <b>Zoom out:</b> double-click (double-tap on a phone)</p>
   </div>`;
 }
 
@@ -485,7 +486,7 @@ function simStock() {
       <div class="metric"><div class="k">Days of forced selling</div><div class="v">${isNum(r.days) ? fmt(r.days, 0) : '—'}</div></div>
       <div class="metric" title="Selling it all in ${I.days} days (A6), compared with a normal day's trading"><div class="k">× normal volume</div><div class="v">${isNum(r.pressure) ? fmt(r.pressure / 100, 1) + '×' : '—'}</div></div>
       <div class="metric"><div class="k">Since 15 Oct</div><div class="v">${fmtPct(r.since)}</div></div>
-    </div>${sentence}<div class="chart" id="stockChart"></div>`;
+    </div>${sentence}<div class="chart" id="stockChart"></div><p class="zhint"><b>Zoom:</b> click and drag across the chart (on a phone, drag with one finger) &nbsp;·&nbsp; <b>Zoom out:</b> double-click (double-tap on a phone)</p>`;
   const i0 = r.dates.findIndex(d => d >= S.cfg.announcement);
   const shape = { type: 'line', x0: S.cfg.announcement, x1: S.cfg.announcement, yref: 'paper', y0: 0, y1: 1, line: { color: RED, width: 1, dash: 'dot' } };
   const trace = r.open ? {

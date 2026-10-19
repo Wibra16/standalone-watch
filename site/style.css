@@ -382,3 +382,7 @@ table.stocks td.na { color: #3a3a3a; }
   .photo img { height: 220px; } .photo.hero-ph img { height: 300px; }
   .photo figcaption { flex-direction: column; align-items: flex-start; gap: 4px; }
 }
+
+/* how to zoom the candlestick charts */
+.zhint { margin: 10px 0 0; font-size: 11px; color: #8a8a8a; letter-spacing: .03em; line-height: 1.6; }
+.zhint b { color: #e10600; font-weight: 500; }
