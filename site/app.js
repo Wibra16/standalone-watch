@@ -272,9 +272,7 @@ async function renderNews(view) {
   const all = S.news.stories;
   const shown = newsLang === 'All' ? all : all.filter(s => s.lang === (newsLang === 'English' ? 'en' : 'id'));
   const updated = new Date(S.news.generated).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
-  view.innerHTML = section('01', 'The downgrade, day by day', `Updated ${updated} WIB · ${all.length} stories`) + `
-    <figure class="photo hero-ph"><img src="img/jakarta.jpg" alt="Jakarta's business district at night, Jalan Rasuna Said" loading="lazy">
-      <figcaption><span>Jakarta, waiting on a decision made in New York.</span><small>Robin Widjaja · CC BY-SA 4.0</small></figcaption></figure>` +
+  view.innerHTML = section('01', 'The downgrade, day by day', `Updated ${updated} WIB · ${all.length} stories`) +
     marketPanel() + socialPanel() + `
     <div class="photos">
       <figure class="photo"><img src="img/idx.jpg" alt="Indonesia Stock Exchange building, Jakarta" loading="lazy">
