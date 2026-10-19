@@ -1,6 +1,9 @@
+# Pure-Python packages are pinned to the versions the site was tested with.
+# numpy/pandas use ranges so the host can pick builds for its Python version
+# (Streamlit Cloud currently defaults to Python 3.14).
 streamlit==1.50.0
 yfinance==1.2.0
-pandas==2.3.3
-numpy==2.0.2
 plotly==7.1.0
 feedparser==6.0.11
+pandas>=2.3.3,<3
+numpy>=2.0,<3
