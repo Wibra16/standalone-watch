@@ -20,43 +20,30 @@ DECISION_CONFIRMED = False
 
 CONSULTATION_CLOSE = datetime(2027, 4, 30, 23, 59, tzinfo=WIB)
 
+# Top 40 IDX stocks by market cap (yfinance, 18 Oct 2026), for the home-page
+# ticker columns. Prices refresh daily; re-rank occasionally if needed.
+TOP40 = """BBCA DCII BBRI BYAN BMRI AMMN BREN TLKM ASII SMMA BRPT DSSA BBNI TPIA CASA UNTR PANI AADI
+ICBP HMSP ADRO ANTM CUAN MDKA BNLI INDF ISAT UNVR BRIS BUMI MEGA NCKL AMRT BDMN CPIN MBMA INKP
+BNGA BELI INCO""".split()
+
+# Digital-finance names highlighted as the fintech focus (not in the top 40)
+FINTECH = ["GOTO", "ARTO", "BBHI"]
+
 # ---------------------------------------------------------------------------
-# Stock universe. Add a row to add a stock.
+# Stock universe for the simulator = the same 40 stocks as the home page
+# + the fintech names. Names come from companies.py so there is one list.
 # ---------------------------------------------------------------------------
-UNIVERSE = [
-    # Top 20 IDX stocks by total market cap (yfinance, 18 Oct 2026),
-    # plus three digital-finance names as the fintech focus.
-    # ticker,    name,                        sector,        fintech
-    ("BBCA.JK", "Bank Central Asia",          "Bank",        False),
-    ("DCII.JK", "DCI Indonesia",              "Data centres", False),
-    ("BBRI.JK", "Bank Rakyat Indonesia",      "Bank",        False),
-    ("BYAN.JK", "Bayan Resources",            "Coal",        False),
-    ("BMRI.JK", "Bank Mandiri",               "Bank",        False),
-    ("AMMN.JK", "Amman Mineral",              "Mining",      False),
-    ("BREN.JK", "Barito Renewables",          "Energy",      False),
-    ("TLKM.JK", "Telkom Indonesia",           "Telecom",     False),
-    ("ASII.JK", "Astra International",        "Conglom.",    False),
-    ("BRPT.JK", "Barito Pacific",             "Conglom.",    False),
-    ("DSSA.JK", "Dian Swastatika Sentosa",    "Energy",      False),
-    ("BBNI.JK", "Bank Negara Indonesia",      "Bank",        False),
-    ("TPIA.JK", "Chandra Asri Pacific",       "Chemicals",   False),
-    ("CASA.JK", "Capital Financial Indonesia", "Financials", False),
-    ("UNTR.JK", "United Tractors",            "Industrial",  False),
-    ("PANI.JK", "Pantai Indah Kapuk Dua",     "Property",    False),
-    ("AADI.JK", "Adaro Andalan Indonesia",    "Coal",        False),
-    ("ICBP.JK", "Indofood CBP",               "Consumer",    False),
-    ("HMSP.JK", "HM Sampoerna",               "Consumer",    False),
-    ("ADRO.JK", "Alamtri Resources",          "Mining",      False),
-    # fintech / digital focus
-    ("GOTO.JK", "GoTo Gojek Tokopedia",       "Fintech",     True),
-    ("ARTO.JK", "Bank Jago",                  "Fintech",     True),
-    ("BBHI.JK", "Allo Bank",                  "Fintech",     True),
+from companies import PROFILES  # noqa: E402
+
+UNIVERSE = [  # (yfinance ticker, name, sector, fintech?)
+    (code + ".JK", PROFILES.get(code, (code,))[0], "", code in FINTECH)
+    for code in TOP40 + FINTECH
 ]
 
 # ASSUMPTION: our stocks make up roughly this share of the MSCI Indonesia
 # index. Each stock's index weight = its share of our universe's free-float
 # market cap x this number. (iShares blocks free download of EIDO holdings.)
-UNIVERSE_COVERAGE = 0.85
+UNIVERSE_COVERAGE = 0.95
 
 # ASSUMPTION: a stock trading less than this per day (USD) is treated as
 # outside the MSCI index (MSCI screens out very illiquid names), so index
@@ -66,11 +53,7 @@ MIN_ADV_USD = 100_000
 # "Mechanically oversold" flag: more days of forced selling than the median
 # stock in our universe AND a lower price-to-book than the median.
 
-# Top 40 IDX stocks by market cap (yfinance, 18 Oct 2026), for the home-page
-# ticker columns. Prices refresh daily; re-rank occasionally if needed.
-TOP40 = """BBCA DCII BBRI BYAN BMRI AMMN BREN TLKM ASII SMMA BRPT DSSA BBNI TPIA CASA UNTR PANI AADI
-ICBP HMSP ADRO ANTM CUAN MDKA BNLI INDF ISAT UNVR BRIS BUMI MEGA NCKL AMRT BDMN CPIN MBMA INKP
-BNGA BELI INCO""".split()
+
 
 INDEX_TICKER = "^JKSE"   # Jakarta Composite Index
 FX_TICKER = "IDR=X"      # rupiah per 1 USD

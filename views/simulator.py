@@ -6,7 +6,7 @@ import streamlit as st
 import config
 import data
 import model
-from components import (panel, assumption, explainer, fmt_pct, fmt_usd, formula, nav_arrow, section)
+from components import (panel, assumption, company_card, scroll_to, explainer, fmt_pct, fmt_usd, formula, nav_arrow, section)
 from config import BLACK, FONT, GREY, RED, RULE, WHITE
 
 with st.spinner("Loading prices for 23 stocks…"):
@@ -142,9 +142,10 @@ with panel("table"):
     show["Flag"] = show["Oversold"].map({True: "OVERSOLD?", False: ""})
     show.loc[show["Status"] != "", "Flag"] = show["Status"]
     show[["Outflow", "ADV"]] = show[["Outflow", "ADV"]] / 1e6
-    st.dataframe(
+    event = st.dataframe(
         show[["Ticker", "Weight", "Outflow", "ADV", "Days", "P/B", "P/E", "Since", "Flag"]],
         hide_index=True, use_container_width=True, height=(len(show) + 1) * 35 + 3,
+        on_select="rerun", selection_mode="single-row", key="stock_table",
         column_config={
             "Ticker": st.column_config.TextColumn("Ticker", help=GLOSSARY["Ticker"]),
             "Weight": st.column_config.NumberColumn("Wt", format="percent", help=GLOSSARY["Wt"]),
@@ -157,7 +158,17 @@ with panel("table"):
             "Flag": st.column_config.TextColumn("", help=GLOSSARY["Flag"]),
         },
     )
-    st.markdown('<p class="sw-note">Hover over a column name for a quick explanation, or open the list below.</p>',
+    # Clicking a row selects that stock in the detail box below (only when the
+    # click changes, so the dropdown still works on its own afterwards)
+    jump = False
+    if event.selection.rows:
+        clicked = show.iloc[event.selection.rows[0]]["_ticker"]
+        if clicked != st.session_state.get("last_clicked"):
+            st.session_state["last_clicked"] = clicked
+            st.session_state["pick"] = clicked
+            jump = True
+    st.markdown('<p class="sw-note"><b style="color:#E10600;font-weight:400">Click any row</b> to see what the '
+                'company does and its numbers below. Hover over a column name for a quick explanation.</p>',
                 unsafe_allow_html=True)
     with st.expander("What do these columns mean?"):
         st.markdown(
@@ -170,8 +181,11 @@ with panel("stock"):
     # --- single stock --------------------------------------------------------
     st.write("")
     labels = {r["_ticker"]: f'{r["Ticker"]}  {r["Name"]}' for r in rows}
-    pick = st.selectbox("Stock", list(labels), format_func=labels.get, label_visibility="collapsed")
+    pick = st.selectbox("Stock", list(labels), format_func=labels.get, label_visibility="collapsed", key="pick")
     row = table.set_index("_ticker").loc[pick]
+    company_card(pick.replace(".JK", ""))
+    if jump:
+        scroll_to("panel-stock")
 
     s1, s2, s3, s4 = st.columns(4)
     s1.metric("Must be sold", fmt_usd(row["Outflow"]))

@@ -125,4 +125,14 @@ PROFILES = {
     "INCO": ("Vale Indonesia",
              "Nickel miner and processor in Sorowako, Sulawesi, majority-owned by Brazil's Vale and MIND ID.",
              ["Nickel matte", "Nickel ore"]),
+    # fintech / digital-finance focus
+    "GOTO": ("GoTo Gojek Tokopedia",
+             "Indonesia's biggest tech group: ride-hailing, food delivery and digital payments in one ecosystem.",
+             ["Gojek", "GoPay", "GoFood", "GoTo Financial"]),
+    "ARTO": ("Bank Jago",
+             "App-only digital bank, closely integrated with the Gojek and GoPay ecosystem.",
+             ["Jago app", "Jago Syariah", "GoPay-linked savings"]),
+    "BBHI": ("Allo Bank Indonesia",
+             "Digital bank in the CT Corp group, offering app-based banking, payments and credit.",
+             ["Allo Bank app", "Allo PayLater", "Allo Prime"]),
 }

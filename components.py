@@ -114,6 +114,16 @@ def apply_style():
         .sw-gloss .n {{ color: {RED}; font-size: .75rem; }}
         .sw-gloss .d {{ color: {GREY}; font-size: .74rem; line-height: 1.6; }}
 
+        /* company card (simulator stock box) */
+        .sw-co {{ margin: 1.2rem 0 1.6rem; padding-bottom: 1.4rem; border-bottom: 1px solid {RULE}; }}
+        .sw-co .code {{ color: {RED}; font-size: .66rem; letter-spacing: .2em; }}
+        .sw-co .nm {{ color: {WHITE}; font-size: 1.2rem; margin: .35rem 0 .6rem; }}
+        .sw-co .ab {{ color: #bdbdbd; font-size: .8rem; line-height: 1.65; max-width: 680px; }}
+        .sw-co .pl {{ color: {GREY}; font-size: .6rem; letter-spacing: .2em; margin: 1rem 0 .5rem; }}
+        .sw-co .chips {{ display: flex; flex-wrap: wrap; gap: 6px; }}
+        .sw-co .chip {{ font-size: .68rem; color: {WHITE}; border: 1px solid #262626; border-radius: 999px;
+            padding: 4px 11px; }}
+
         /* every slider: room for the floating value above the handle */
         [data-testid="stSlider"] {{ padding-top: 1.8rem; }}
 
@@ -457,7 +467,9 @@ def fmt_usd(x):
         return "—"
     if abs(x) >= 1e9:
         return f"${x / 1e9:,.2f}bn"
-    return f"${x / 1e6:,.0f}m"
+    if abs(x) >= 1e6:
+        return f"${x / 1e6:,.0f}m"
+    return f"${x / 1e3:,.0f}k"   # small, illiquid names would otherwise show "$0m"
 
 
 def fmt_pct(x):
@@ -523,3 +535,23 @@ def about_block():
       <div class="c">© {config.COPYRIGHT_YEAR} {config.AUTHOR}. All rights reserved.</div>
     </div>
     """, unsafe_allow_html=True)
+
+
+def company_card(code):
+    """Name, plain-English description and best-known products for one stock."""
+    name, about, products = PROFILES.get(code, (code, "", []))
+    chips = "".join(f'<span class="chip">{html_lib.escape(p)}</span>' for p in products)
+    st.markdown(
+        f'<div class="sw-co"><div class="code">{code} · IDX</div><div class="nm">{html_lib.escape(name)}</div>'
+        f'<div class="ab">{html_lib.escape(about) or "Profile coming soon."}</div>'
+        + (f'<div class="pl">KNOWN FOR</div><div class="chips">{chips}</div>' if chips else "")
+        + "</div>",
+        unsafe_allow_html=True)
+
+
+def scroll_to(key):
+    """Smoothly scroll the page to the container created with key=`key`."""
+    components.html(f"""<script>
+      const el = window.parent.document.querySelector('.st-key-{key}');
+      if (el) el.scrollIntoView({{behavior: 'smooth', block: 'start'}});
+    </script>""", height=0)
