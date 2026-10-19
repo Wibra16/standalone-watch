@@ -219,7 +219,7 @@ function socialPanel() {
         <span class="muted">${sp.positive} positive · ${sp.neutral} neutral · ${sp.negative} negative (of ${R.sample})</span></div></div>
     <div class="posts">${R.posts.map((p, i) => `<a class="post" href="${esc(p.url)}" target="_blank" rel="noopener">
       <span class="rk">${i + 1}</span><span class="pt">${esc(p.title)}
-      <span class="pm">↑ ${k(p.score)} · ${k(p.comments)} comments · r/${esc(p.sub)} · ${ago(p.created)}</span></span>
+      <span class="pm">${p.score != null ? `↑ ${k(p.score)} · ${k(p.comments)} comments · ` : ''}r/${esc(p.sub)}${p.created ? ` · ${ago(p.created)}` : ''}</span></span>
       <span class="tone ${p.label}">${p.label}</span></a>`).join('')}</div>
     <p class="note">Tone is scored automatically (VADER sentiment model) from each post's title and opening text, so treat it as a rough read, not a fact.</p>
   </div>`;
@@ -468,7 +468,9 @@ function simStock() {
   plot($('#stockChart'), [
     { x: r.dates, y: r.close, mode: 'lines', line: { color: WHITE, width: 1.2 }, hovertemplate: hover },
     ...(i0 >= 0 ? [{ x: r.dates.slice(i0), y: r.close.slice(i0), mode: 'lines+markers', line: { color: RED, width: 1.6 }, marker: { size: 4 }, hovertemplate: hover }] : []),
-  ], { xaxis: { showgrid: false, linecolor: RULE }, yaxis: { showgrid: false, side: 'right' } });
+  ], { margin: { l: 0, r: 56, t: 10, b: 28 },
+       xaxis: { showgrid: false, linecolor: RULE, type: 'date', tickformat: '%b %y', nticks: 8, showticklabels: true },
+       yaxis: { showgrid: true, gridcolor: '#141414', side: 'right', zeroline: false, tickformat: ',.0f', nticks: 6, showticklabels: true } });
 }
 
 /* ================================================================ ARGENTINA */

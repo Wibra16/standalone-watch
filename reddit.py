@@ -16,6 +16,7 @@ import re
 import time
 from pathlib import Path
 
+import feedparser
 import requests
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
@@ -75,15 +76,42 @@ def _search(token, window):
     return sorted(posts.values(), key=lambda p: p["score"], reverse=True)
 
 
+def _search_rss(window):
+    """Keyless fallback: Reddit's public RSS search (sorted by top, no vote counts)."""
+    posts, rank = {}, 0
+    for q in QUERIES:
+        for attempt in range(3):
+            r = requests.get("https://www.reddit.com/search.rss", headers={"User-Agent": USER_AGENT}, timeout=15,
+                             params={"q": q, "sort": "top", "t": window, "limit": 25})
+            if r.status_code != 429:
+                break
+            time.sleep(10 * (attempt + 1))
+        if r.status_code == 200:
+            for e in feedparser.parse(r.text).entries:
+                body = re.sub(r"<[^>]+>", " ", e.get("summary", ""))
+                text = f'{e.title} {body[:400]}'
+                if e.link in posts or "/comments/" not in e.link or not TOPIC.search(text):
+                    continue
+                score, label = tone(e.title)
+                sub = e.link.split("/r/")[1].split("/")[0]
+                posts[e.link] = {
+                    "title": e.title, "sub": sub, "score": None, "comments": None, "url": e.link,
+                    "created": int(time.mktime(e.updated_parsed)) if e.get("updated_parsed") else None,
+                    "tone": score, "label": label, "rank": rank,
+                }
+                rank += 1
+        time.sleep(3)
+    return sorted(posts.values(), key=lambda p: p["rank"])
+
+
 def fetch(top=5):
     """Top posts of the last day (falls back to the last week if the day is quiet).
-    Returns None when no API key is configured."""
+    Uses the API when keys exist, otherwise the public RSS feed."""
     token = _token()
-    if not token:
-        return None
-    window, posts = "day", _search(token, "day")
+    search = (lambda w: _search(token, w)) if token else _search_rss
+    window, posts = "day", search("day")
     if len(posts) < top:
-        window, posts = "week", _search(token, "week")
+        window, posts = "week", search("week")
     picked = posts[:top]
     every = posts[:25]
     mood = round(sum(p["tone"] for p in every) / len(every), 3) if every else None
@@ -98,4 +126,4 @@ if __name__ == "__main__":
     else:
         print(f"{len(out['posts'])} posts ({out['window']}), mood {out['mood']}, split {out['split']}")
         for p in out["posts"]:
-            print(f"  {p['score']:>6} ↑  r/{p['sub']:<16} {p['label']:<8} {p['title'][:70]}")
+            print(f"  {p['score'] or '':>6} ↑  r/{p['sub']:<16} {p['label']:<8} {p['title'][:70]}")
