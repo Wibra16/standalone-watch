@@ -1,5 +1,5 @@
 """
-app.py — Standalone Watch.
+app.py — Indonesia Standalone.
 Five tabs along the top: Home (countdown) · News · Simulator · Argentina · About.
 Run with:  streamlit run app.py
 """
@@ -7,7 +7,7 @@ import streamlit as st
 
 from components import apply_style, header_timer, remove_header_timer
 
-st.set_page_config(page_title="Standalone Watch", page_icon="▼", layout="centered",
+st.set_page_config(page_title="Indonesia Standalone", page_icon="▼", layout="centered",
                    initial_sidebar_state="collapsed")
 apply_style()
 

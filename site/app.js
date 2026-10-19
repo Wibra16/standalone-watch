@@ -1,4 +1,4 @@
-/* Standalone Watch — static site.
+/* Indonesia Standalone — static site.
    Data comes from site/data/*.json (built daily by export_site_data.py).
    Pages are drawn by small functions below; the URL hash picks the page. */
 'use strict';
@@ -606,12 +606,12 @@ function arChart() {
 /* ================================================================ ABOUT */
 function renderAbout(view) {
   const C = S.cfg;
-  view.innerHTML = section('04', 'About', 'Standalone Watch') + `
-  <div class="panel"><p class="lede">Standalone Watch follows MSCI's proposal to move Indonesia from Emerging Markets to <b>Standalone</b> status. It counts down to the decision, tracks the news day by day, estimates how much stock index funds would be forced to sell, and compares it all with Argentina, the last country MSCI made Standalone.</p></div>
+  view.innerHTML = section('04', 'About', 'Indonesia Standalone') + `
+  <div class="panel"><p class="lede">Indonesia Standalone follows MSCI's proposal to move Indonesia from Emerging Markets to <b>Standalone</b> status. It counts down to the decision, tracks the news day by day, estimates how much stock index funds would be forced to sell, and compares it all with Argentina, the last country MSCI made Standalone.</p></div>
   <div class="panel about">
     <div class="top"><div><span class="k">Created by</span>${esc(C.author)}</div>
       <div><span class="k">Contact</span><a href="mailto:${esc(C.email)}">${esc(C.email)}</a></div></div>
-    <p><b>Not investment advice.</b> Standalone Watch is an independent educational project. All figures are illustrative estimates built on stated assumptions and free public data, which may be delayed, incomplete or wrong. Nothing here is a recommendation to buy or sell any security. Do your own research and consult a licensed adviser before making investment decisions.</p>
+    <p><b>Not investment advice.</b> Indonesia Standalone is an independent educational project. All figures are illustrative estimates built on stated assumptions and free public data, which may be delayed, incomplete or wrong. Nothing here is a recommendation to buy or sell any security. Do your own research and consult a licensed adviser before making investment decisions.</p>
     <p><b>No affiliation.</b> This site is not affiliated with, endorsed by or sponsored by MSCI Inc., the Indonesia Stock Exchange (IDX), OJK, or any company mentioned. MSCI and other names are trademarks of their respective owners and are used only to describe public events.</p>
     <p><b>Data &amp; news.</b> Market data via Yahoo Finance, refreshed daily. Headlines link to their original publishers via Google News; all articles remain the property of their publishers. Only headlines and links are shown.</p>
     <p><b>No warranty.</b> Provided "as is" without warranty of any kind. The author accepts no liability for any loss arising from use of this site.</p>
