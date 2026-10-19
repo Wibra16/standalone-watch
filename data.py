@@ -198,11 +198,12 @@ def last_closes(codes):
 def _last_closes_cached(codes):
     tickers = [c + ".JK" for c in codes]
     try:
-        # threads=False + timeout: parallel downloads can hang inside Streamlit,
-        # which would freeze the home page instead of just skipping the tickers
+        # One request for all 75 (threaded inside yfinance). The lock stops two
+        # pages downloading at once, which is what used to mix up / hang data;
+        # the timeout keeps a slow Yahoo from freezing the home page.
         with _YF_LOCK:
             df = yf.download(tickers, period="10d", progress=False, auto_adjust=False,
-                             threads=False, timeout=10)["Close"]
+                             threads=True, timeout=10)["Close"]
     except Exception:
         raise _Incomplete([])
     out = []

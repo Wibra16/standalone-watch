@@ -9,8 +9,8 @@ from components import hero
 st.markdown("<style>.block-container { max-width: 100% !important; padding-left: 0 !important;"
             " padding-right: 0 !important; }</style>", unsafe_allow_html=True)
 
-fx = data.load_prices(config.FX_TICKER)
-jci = data.load_prices(config.INDEX_TICKER)
+both = data.load_many((config.FX_TICKER, config.INDEX_TICKER))  # one request
+fx, jci = both[config.FX_TICKER], both[config.INDEX_TICKER]
 tape = data.last_closes(tuple(config.TOP75))
 hero(data.change_since(jci), None if fx.empty else fx["Close"].iloc[-1], tape,
      None if jci.empty else f"{jci.index[-1]:%d %b %Y}")
