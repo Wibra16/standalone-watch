@@ -19,6 +19,27 @@ section("02", "Forced-selling simulator", "ILLUSTRATIVE ESTIMATES — NOT INVEST
 with panel("explainer"):
     explainer()
 
+# Plain-English meaning of each table column (hover tooltips + the explainer list)
+GLOSSARY = {
+    "Ticker": "The stock's code on the Indonesia Stock Exchange (BBCA = Bank Central Asia). "
+              "◆ marks the fintech and digital-finance names.",
+    "Wt": "Weight: the stock's estimated share of the MSCI Indonesia index. Bigger weight means index funds hold "
+          "more of it, so they must sell more.",
+    "Out $m": "Outflow: dollars of this stock that index funds would be forced to sell, in millions.",
+    "ADV $m": "Average daily value: how many dollars of this stock change hands on a normal day (20-day average), "
+              "in millions. It measures how easy the stock is to sell.",
+    "Days": "Days of forced selling: how many trading days it takes to sell the outflow without crashing the "
+            "price, if sellers stay under the participation rate. Higher means a longer squeeze.",
+    "P/B": "Price-to-book: share price ÷ the company's net assets per share. Below 1 means the market values the "
+           "company at less than its accounts say it's worth, which is cheap.",
+    "P/E": "Price-to-earnings: share price ÷ yearly profit per share. Lower means cheaper. Blank means the "
+           "company is losing money.",
+    "Δ 15 Oct": "How much the share price has moved since MSCI's proposal on 15 Oct 2026.",
+    "Flag": "OVERSOLD? = more forced selling and a lower P/B than the typical stock here. These may be falling "
+            "because of index rules rather than the business itself. Not in index = trades too little "
+            "(under $100k a day) for MSCI funds to hold.",
+}
+
 SCENARIO_NOTES = {
     "Stay EM": "MSCI backs down. Indonesia stays in the index, so nobody is forced to sell.",
     "Frontier": "Moved to the Frontier index. EM funds sell, but some Frontier funds buy, so about 85% of the selling remains.",
@@ -123,21 +144,25 @@ with panel("table"):
         show[["Ticker", "Weight", "Outflow", "ADV", "Days", "P/B", "P/E", "Since", "Flag"]],
         hide_index=True, use_container_width=True, height=(len(show) + 1) * 35 + 3,
         column_config={
-            "Weight": st.column_config.NumberColumn("Wt", format="percent"),
-            "Outflow": st.column_config.NumberColumn("Out $m", format="%.0f"),
-            "ADV": st.column_config.NumberColumn("ADV $m", format="%.1f"),
-            "Days": st.column_config.NumberColumn("Days", format="%.1f"),
-            "P/B": st.column_config.NumberColumn(format="%.1f"),
-            "P/E": st.column_config.NumberColumn(format="%.1f"),
-            "Since": st.column_config.NumberColumn("Δ 15 Oct", format="%+.1f%%"),
-            "Flag": st.column_config.TextColumn(""),
+            "Ticker": st.column_config.TextColumn("Ticker", help=GLOSSARY["Ticker"]),
+            "Weight": st.column_config.NumberColumn("Wt", format="percent", help=GLOSSARY["Wt"]),
+            "Outflow": st.column_config.NumberColumn("Out $m", format="%.0f", help=GLOSSARY["Out $m"]),
+            "ADV": st.column_config.NumberColumn("ADV $m", format="%.1f", help=GLOSSARY["ADV $m"]),
+            "Days": st.column_config.NumberColumn("Days", format="%.1f", help=GLOSSARY["Days"]),
+            "P/B": st.column_config.NumberColumn(format="%.1f", help=GLOSSARY["P/B"]),
+            "P/E": st.column_config.NumberColumn(format="%.1f", help=GLOSSARY["P/E"]),
+            "Since": st.column_config.NumberColumn("Δ 15 Oct", format="%+.1f%%", help=GLOSSARY["Δ 15 Oct"]),
+            "Flag": st.column_config.TextColumn("", help=GLOSSARY["Flag"]),
         },
     )
-    st.markdown(
-        f'<p class="sw-note">◆ fintech &nbsp;·&nbsp; Days = outflow ÷ (20-day avg traded value × participation) '
-        f'&nbsp;·&nbsp; OVERSOLD? = more forced selling and lower P/B than the median name. '
-        f'The selling is driven by index rules, not valuation.</p>',
-        unsafe_allow_html=True)
+    st.markdown('<p class="sw-note">Hover over a column name for a quick explanation, or open the list below.</p>',
+                unsafe_allow_html=True)
+    with st.expander("What do these columns mean?"):
+        st.markdown(
+            '<div class="sw-gloss">' + "".join(
+                f'<div class="g"><div class="n">{name}</div><div class="d">{text}</div></div>'
+                for name, text in GLOSSARY.items()) + "</div>",
+            unsafe_allow_html=True)
 
 with panel("stock"):
     # --- single stock --------------------------------------------------------

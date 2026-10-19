@@ -105,6 +105,13 @@ def apply_style():
         .sw-footer p b {{ color: {WHITE}; font-weight: 400; }}
         .sw-footer .c {{ color: {GREY}; font-size: .64rem; letter-spacing: .1em; margin-top: 1.2rem; }}
 
+        /* column glossary */
+        .sw-gloss .g {{ display: grid; grid-template-columns: 90px 1fr; gap: 16px; padding: .7rem 0;
+            border-bottom: 1px solid {RULE}; }}
+        .sw-gloss .g:last-child {{ border-bottom: none; }}
+        .sw-gloss .n {{ color: {RED}; font-size: .75rem; }}
+        .sw-gloss .d {{ color: {GREY}; font-size: .74rem; line-height: 1.6; }}
+
         /* every slider: room for the floating value above the handle */
         [data-testid="stSlider"] {{ padding-top: 1.8rem; }}
 
@@ -221,6 +228,8 @@ def hero(jci_change, fx_last, tape=None, tape_date=None):
       body {{ background:{BLACK}; color:{WHITE}; font-family:{FONT}; }}
       .wrap {{ height:100vh; display:flex; flex-direction:column; justify-content:center;
                align-items:center; text-align:center; position:relative; }}
+      .title {{ font-size:clamp(28px,4.4vw,54px); font-weight:500; letter-spacing:-.03em; line-height:1.05; }}
+      .tag {{ font-size:13px; color:{GREY}; margin:14px 0 54px; max-width:560px; line-height:1.6; padding:0 20px; }}
       .lbl {{ font-size:11px; letter-spacing:.24em; color:{GREY}; text-transform:uppercase; }}
       .clock {{ display:flex; gap:clamp(14px,4vw,44px); margin:28px 0 30px; }}
       .u {{ display:flex; flex-direction:column; align-items:center; }}
@@ -257,6 +266,8 @@ def hero(jci_change, fx_last, tape=None, tape_date=None):
     </style>
     <div class="wrap">
       {tapes}
+      <div class="title">Indonesia, <span class="red">downgraded?</span></div>
+      <div class="tag">The world's biggest index provider may cut a 280-million-person market out of Emerging Markets.</div>
       <div class="lbl">MSCI decision on Indonesia &nbsp;·&nbsp; <span class="red">{status}</span>
         {config.DECISION_DATE:%d %b %Y}</div>
       <div class="clock">
