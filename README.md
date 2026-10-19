@@ -23,6 +23,7 @@ streamlit run app.py
 - `data.py` — yfinance downloads, caching, weights, valuation, event windows
 - `news.py` — fetch, dedupe and tag headlines (`python news.py` to refresh)
 - `components.py` — shared styling and UI building blocks
+- `companies.py` — short profiles shown when a home-page ticker is clicked
 
 ## Disclaimer
 Independent educational project. Not investment advice. Figures are illustrative estimates based on stated

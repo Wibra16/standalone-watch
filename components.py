@@ -3,11 +3,13 @@ components.py — shared look and building blocks: the minimal black/white/red
 styling, the full-screen countdown hero, and section headers.
 """
 import html as html_lib
+import json
 
 import streamlit as st
 import streamlit.components.v1 as components
 
 import config
+from companies import PROFILES
 from config import BLACK, FONT, GREY, PANEL, PANEL_EDGE, RED, RULE, WHITE
 
 
@@ -202,7 +204,7 @@ def section(number, title, meta="", anchor=""):
 def _tape_column(rows, direction):
     """One vertical ticker column. The list is doubled so the scroll loops seamlessly."""
     items = "".join(
-        f'<div class="t"><span class="c">{code}</span><span class="p">{close:,.0f}</span>'
+        f'<div class="t" data-code="{code}"><span class="c">{code}</span><span class="p">{close:,.0f}</span>'
         f'<span class="x {"dn" if chg < 0 else "up"}">{"▼" if chg < 0 else "▲"} {abs(chg):.1f}%</span></div>'
         for code, close, chg in rows)
     return f'<div class="tape {direction}"><div class="roll">{items}{items}</div></div>'
@@ -215,6 +217,11 @@ def hero(jci_change, fx_last, tape=None, tape_date=None):
     tape = tape or []
     half = (len(tape) + 1) // 2
     tapes = (_tape_column(tape[:half], "up") + _tape_column(tape[half:], "dn")) if tape else ""
+    # data for the click-to-open company card: profile text + latest price
+    cards = {code: {"name": p[0], "about": p[1], "products": p[2]} for code, p in PROFILES.items()}
+    for code, close, chg in tape:
+        cards.setdefault(code, {"name": code, "about": "", "products": []}).update(close=close, chg=chg)
+    cards_json = json.dumps(cards).replace("</", "<\\/")
     decision_ms = int(config.DECISION_DATE.timestamp() * 1000)
     status = "confirmed" if config.DECISION_CONFIRMED else "expected"
     jci = "—" if jci_change is None else f"{jci_change:+.1f}%"
@@ -260,6 +267,27 @@ def hero(jci_change, fx_last, tape=None, tape_date=None):
       .t .x {{ text-align:right; }}
       .t .x.dn {{ color:{RED}; }}  .t .x.up {{ color:{WHITE}; }}
       @media (max-width: 1000px) {{ .tape {{ display:none; }} }}
+      .t {{ cursor:pointer; transition:background .15s; }}
+      .t:hover {{ background:#0e0e0e; }}
+      .t:hover .c {{ color:{RED}; }}
+
+      /* company card */
+      .card-bg {{ position:fixed; inset:0; background:rgba(0,0,0,.72); display:none; align-items:center;
+                  justify-content:center; z-index:10; backdrop-filter:blur(3px); }}
+      .card-bg.open {{ display:flex; }}
+      .card {{ width:min(440px, 88vw); background:#0b0b0b; border:1px solid #1e1e1e; border-radius:12px;
+               padding:28px 30px 26px; text-align:left; position:relative; animation:pop .18s ease-out; }}
+      @keyframes pop {{ from {{ transform:translateY(8px); opacity:0; }} to {{ transform:none; opacity:1; }} }}
+      .card .x {{ position:absolute; top:14px; right:16px; background:none; border:none; color:{GREY};
+                  font-size:18px; cursor:pointer; font-family:{FONT}; }}
+      .card .x:hover {{ color:{RED}; }}
+      .card .code {{ color:{RED}; font-size:11px; letter-spacing:.2em; }}
+      .card .nm {{ font-size:20px; color:{WHITE}; margin:6px 0 4px; letter-spacing:-.01em; }}
+      .card .px {{ font-size:12px; color:{GREY}; font-variant-numeric:tabular-nums; }}
+      .card .ab {{ font-size:13px; color:#bdbdbd; line-height:1.65; margin:18px 0 18px; }}
+      .card .pl {{ font-size:10px; letter-spacing:.2em; color:{GREY}; margin-bottom:10px; }}
+      .card .chips {{ display:flex; flex-wrap:wrap; gap:6px; }}
+      .card .chip {{ font-size:11px; color:{WHITE}; border:1px solid #262626; border-radius:999px; padding:5px 11px; }}
     </style>
     <div class="wrap">
       {tapes}
@@ -273,6 +301,17 @@ def hero(jci_change, fx_last, tape=None, tape_date=None):
       <div class="cap">until MSCI decides &nbsp;·&nbsp; {status} {config.DECISION_DATE:%d %b %Y}</div>
       <div class="mkt">JCI <span class="red">{jci}</span> &nbsp;&nbsp; USD/IDR <span>{fx}</span> &nbsp;&nbsp; since 15 Oct</div>
       <button class="down" id="down" title="Latest news">↓</button>
+      <div class="card-bg" id="cardbg">
+        <div class="card">
+          <button class="x" id="cardx" title="Close">×</button>
+          <div class="code" id="cc"></div>
+          <div class="nm" id="cn"></div>
+          <div class="px" id="cp"></div>
+          <div class="ab" id="ca"></div>
+          <div class="pl">KNOWN FOR</div>
+          <div class="chips" id="cx"></div>
+        </div>
+      </div>
     </div>
     <script>
       const p = n => String(n).padStart(2, '0');
@@ -284,6 +323,32 @@ def hero(jci_change, fx_last, tape=None, tape_date=None):
         document.getElementById('s').textContent = p(Math.floor(ms % 6e4 / 1e3));
       }}
       tick(); setInterval(tick, 1000);
+
+      // Click a ticker row -> company card (Esc, × or clicking outside closes it)
+      const CARDS = {cards_json};
+      const bg = document.getElementById('cardbg');
+      const esc = s => String(s).replace(/[&<>"]/g, ch => ({{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}}[ch]));
+      document.querySelectorAll('.t').forEach(row => row.addEventListener('click', () => {{
+        const code = row.dataset.code, d = CARDS[code] || {{name: code, about: '', products: []}};
+        document.getElementById('cc').textContent = code + ' · IDX';
+        document.getElementById('cn').textContent = d.name;
+        const up = (d.chg || 0) >= 0;
+        document.getElementById('cp').innerHTML = d.close == null ? '' :
+          'Last close IDR ' + Math.round(d.close).toLocaleString('en-US') + ' &nbsp; <span style="color:' +
+          (up ? '{WHITE}' : '{RED}') + '">' + (up ? '▲ ' : '▼ ') + Math.abs(d.chg).toFixed(1) + '%</span>';
+        document.getElementById('ca').textContent = d.about || 'Profile coming soon.';
+        document.getElementById('cx').innerHTML = (d.products || []).map(p => '<span class="chip">' + esc(p) + '</span>').join('');
+        bg.classList.add('open');
+        document.querySelectorAll('.roll').forEach(r => r.style.animationPlayState = 'paused');
+      }}));
+      function closeCard() {{
+        bg.classList.remove('open');
+        document.querySelectorAll('.roll').forEach(r => r.style.animationPlayState = '');
+      }}
+      document.getElementById('cardx').addEventListener('click', closeCard);
+      bg.addEventListener('click', e => {{ if (e.target === bg) closeCard(); }});
+      document.addEventListener('keydown', e => {{ if (e.key === 'Escape') closeCard(); }});
+
       // Fill exactly one screen, whatever the visitor's window size
       // Height = window height minus where the hero starts on the page, so the
       // next section always starts just below the fold. Re-checked on resize
