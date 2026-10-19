@@ -272,8 +272,8 @@ async function renderNews(view) {
     <div class="photos">
       <figure class="photo"><img src="img/idx.jpg" alt="Indonesia Stock Exchange building, Jakarta" loading="lazy">
         <figcaption><span>The Indonesia Stock Exchange.</span><small>Bursa Efek Indonesia · CC BY-SA 4.0</small></figcaption></figure>
-      <figure class="photo"><img src="img/monas.jpg" alt="The National Monument (Monas), Jakarta, lit at night" loading="lazy">
-        <figcaption><span>Monas, central Jakarta.</span><small>Office of the Jakarta Governor · public domain</small></figcaption></figure>
+      <figure class="photo"><img src="img/bundaran.jpg" alt="Bundaran HI roundabout and the Selamat Datang Monument, Jakarta" loading="lazy">
+        <figcaption><span>Bundaran HI, the heart of Jakarta.</span><small>Medelam · CC BY 4.0</small></figcaption></figure>
     </div>
     <div class="panel">
       <div class="label ptitle" style="margin-bottom:0">Latest headlines</div>
