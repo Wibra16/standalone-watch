@@ -215,9 +215,7 @@ def hero(jci_change, fx_last, tape=None, tape_date=None):
     tape = tape or []
     half = (len(tape) + 1) // 2
     tapes = (_tape_column(tape[:half], "up") + _tape_column(tape[half:], "dn")) if tape else ""
-    tape_note = (f'<br>Top 40 IDX stocks &nbsp;·&nbsp; last close {tape_date}' if tape and tape_date else "")
     decision_ms = int(config.DECISION_DATE.timestamp() * 1000)
-    close_ms = int(config.CONSULTATION_CLOSE.timestamp() * 1000)
     status = "confirmed" if config.DECISION_CONFIRMED else "expected"
     jci = "—" if jci_change is None else f"{jci_change:+.1f}%"
     fx = "—" if fx_last is None else f"{fx_last:,.0f}"
@@ -228,17 +226,16 @@ def hero(jci_change, fx_last, tape=None, tape_date=None):
       body {{ background:{BLACK}; color:{WHITE}; font-family:{FONT}; }}
       .wrap {{ height:100vh; display:flex; flex-direction:column; justify-content:center;
                align-items:center; text-align:center; position:relative; }}
-      .title {{ font-size:clamp(28px,4.4vw,54px); font-weight:500; letter-spacing:-.03em; line-height:1.05; }}
-      .tag {{ font-size:13px; color:{GREY}; margin:14px 0 54px; max-width:560px; line-height:1.6; padding:0 20px; }}
-      .lbl {{ font-size:11px; letter-spacing:.24em; color:{GREY}; text-transform:uppercase; }}
-      .clock {{ display:flex; gap:clamp(14px,4vw,44px); margin:28px 0 30px; }}
-      .u {{ display:flex; flex-direction:column; align-items:center; }}
-      .v {{ font-size:clamp(44px,11vw,120px); font-weight:300; letter-spacing:-.04em; line-height:1;
+      .title {{ font-size:clamp(22px,3vw,36px); font-weight:400; letter-spacing:-.02em; color:{WHITE}; }}
+      .clock {{ display:flex; align-items:baseline; margin:clamp(28px,6vh,64px) 0 18px; }}
+      .v {{ font-size:clamp(48px,9vw,110px); font-weight:200; letter-spacing:-.05em; line-height:1;
             font-variant-numeric:tabular-nums; }}
-      .k {{ font-size:10px; letter-spacing:.24em; color:{GREY}; margin-top:12px; }}
+      .k {{ font-size:clamp(14px,1.6vw,20px); color:{GREY}; margin:0 clamp(12px,2.4vw,34px) 0 6px; }}
+      .k:last-child {{ margin-right:0; }}
       .red {{ color:{RED}; }}
-      .sub {{ font-size:12px; color:{GREY}; letter-spacing:.06em; line-height:2; }}
-      .sub span {{ color:{WHITE}; }}
+      .cap {{ font-size:11px; letter-spacing:.2em; color:{GREY}; text-transform:uppercase; }}
+      .mkt {{ position:absolute; bottom:104px; font-size:11px; letter-spacing:.08em; color:#3f3f3f; }}
+      .mkt span {{ color:{GREY}; }}
       .down {{ position:absolute; bottom:36px; background:none; border:1px solid {RULE}; color:{WHITE};
                width:52px; height:52px; border-radius:50%; font-size:20px; cursor:pointer;
                font-family:{FONT}; animation:b 2.4s ease-in-out infinite; transition:border-color .2s; }}
@@ -267,19 +264,14 @@ def hero(jci_change, fx_last, tape=None, tape_date=None):
     <div class="wrap">
       {tapes}
       <div class="title">Indonesia, <span class="red">downgraded?</span></div>
-      <div class="tag">The world's biggest index provider may cut a 280-million-person market out of Emerging Markets.</div>
-      <div class="lbl">MSCI decision on Indonesia &nbsp;·&nbsp; <span class="red">{status}</span>
-        {config.DECISION_DATE:%d %b %Y}</div>
       <div class="clock">
-        <div class="u"><div class="v" id="d">—</div><div class="k">DAYS</div></div>
-        <div class="u"><div class="v" id="h">—</div><div class="k">HRS</div></div>
-        <div class="u"><div class="v" id="m">—</div><div class="k">MIN</div></div>
-        <div class="u"><div class="v red" id="s">—</div><div class="k">SEC</div></div>
+        <span class="v" id="d">—</span><span class="k">d</span>
+        <span class="v" id="h">—</span><span class="k">h</span>
+        <span class="v" id="m">—</span><span class="k">m</span>
+        <span class="v red" id="s">—</span><span class="k">s</span>
       </div>
-      <div class="sub">
-        Consultation closes in <span id="c">—</span> days<br>
-        JCI <span class="red">{jci}</span> &nbsp;·&nbsp; USD/IDR <span>{fx}</span> &nbsp; since proposal{tape_note}
-      </div>
+      <div class="cap">until MSCI decides &nbsp;·&nbsp; {status} {config.DECISION_DATE:%d %b %Y}</div>
+      <div class="mkt">JCI <span class="red">{jci}</span> &nbsp;&nbsp; USD/IDR <span>{fx}</span> &nbsp;&nbsp; since 15 Oct</div>
       <button class="down" id="down" title="Latest news">↓</button>
     </div>
     <script>
@@ -290,7 +282,6 @@ def hero(jci_change, fx_last, tape=None, tape_date=None):
         document.getElementById('h').textContent = p(Math.floor(ms % 864e5 / 36e5));
         document.getElementById('m').textContent = p(Math.floor(ms % 36e5 / 6e4));
         document.getElementById('s').textContent = p(Math.floor(ms % 6e4 / 1e3));
-        document.getElementById('c').textContent = Math.max(0, Math.ceil(({close_ms} - Date.now()) / 864e5));
       }}
       tick(); setInterval(tick, 1000);
       // Fill exactly one screen, whatever the visitor's window size

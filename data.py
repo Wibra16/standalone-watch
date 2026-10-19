@@ -120,7 +120,10 @@ def last_closes(codes):
     Returns [(code, close, pct_change), ...] in the order given; skips failures."""
     tickers = [c + ".JK" for c in codes]
     try:
-        df = yf.download(tickers, period="10d", progress=False, auto_adjust=False)["Close"]
+        # threads=False + timeout: parallel downloads can hang inside Streamlit,
+        # which would freeze the home page instead of just skipping the tickers
+        df = yf.download(tickers, period="10d", progress=False, auto_adjust=False,
+                         threads=False, timeout=10)["Close"]
     except Exception:
         return []
     out = []
