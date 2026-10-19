@@ -353,3 +353,7 @@ table.stocks td.na { color: #3a3a3a; }
   .post { grid-template-columns: 22px 1fr; } .post .tone { grid-column: 2; justify-self: start; }
   .metrics[style*='--cols:4'] { grid-template-columns: 1fr 1fr; }
 }
+
+/* panel titles (Market check, Internet sentiment, Latest headlines): read as headings, not captions */
+.label.ptitle { font-size: 15px; font-weight: 700; color: var(--white, #fff); letter-spacing: .14em; margin-bottom: 10px !important; }
+.label.ptitle::before { content: ""; display: inline-block; width: 8px; height: 8px; background: #e10600; margin-right: 10px; vertical-align: 1px; }

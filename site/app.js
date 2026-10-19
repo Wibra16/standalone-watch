@@ -159,7 +159,7 @@ function weekly(s) {                       // daily candles -> weekly (Mon–Fri
 function marketPanel() {
   return `<div class="panel">
     <div class="mk-head">
-      <div><div class="label" style="margin-bottom:6px">Market check</div><div class="note" id="mkLong" style="margin:0"></div></div>
+      <div><div class="label ptitle" style="margin-bottom:6px">Market check</div><div class="note" id="mkLong" style="margin:0"></div></div>
       <div class="mk-ctl"><div class="seg" id="mkAsset">${Object.entries(ASSETS).map(([k, a]) => `<button data-k="${k}" class="${k === mk.asset ? 'on' : ''}">${a.name}</button>`).join('')}</div>
         <div class="seg" id="mkFreq">${['Daily', 'Weekly'].map(f => `<button class="${f === mk.freq ? 'on' : ''}">${f}</button>`).join('')}</div></div>
     </div>
@@ -204,7 +204,7 @@ function marketWire(view) {
 function socialPanel() {
   const R = S.social;
   if (!R || !R.configured || !R.posts.length) {
-    return `<div class="panel"><div class="label">Internet sentiment</div>
+    return `<div class="panel"><div class="label ptitle">Internet sentiment</div>
       <p class="note" style="margin:0">Top Reddit posts about Indonesia's markets will appear here once the Reddit connection is set up.</p></div>`;
   }
   const k = n => n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n);
@@ -212,7 +212,7 @@ function socialPanel() {
   const moodWord = m => m >= 0.15 ? 'leaning positive' : m <= -0.15 ? 'leaning negative' : 'mixed';
   const sp = R.split, total = Math.max(1, sp.positive + sp.neutral + sp.negative), pc = n => (n / total * 100).toFixed(0) + '%';
   return `<div class="panel">
-    <div class="mk-head"><div><div class="label" style="margin-bottom:6px">Internet sentiment</div>
+    <div class="mk-head"><div><div class="label ptitle" style="margin-bottom:6px">Internet sentiment</div>
       <div class="note" style="margin:0">Most-upvoted Reddit posts about Indonesia's markets, last ${R.window === 'day' ? '24 hours' : '7 days'}</div></div>
       <div class="mood"><span class="${R.mood <= -0.15 ? 'dn-c' : ''}">Mood: ${moodWord(R.mood)}</span>
         <div class="bar"><i class="p" style="width:${pc(sp.positive)}"></i><i class="u" style="width:${pc(sp.neutral)}"></i><i class="n" style="width:${pc(sp.negative)}"></i></div>
@@ -253,7 +253,7 @@ async function renderNews(view) {
   const updated = new Date(S.news.generated).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
   view.innerHTML = section('01', 'The downgrade, day by day', `Updated ${updated} WIB · ${all.length} stories`) + marketPanel() + socialPanel() + `
     <div class="panel">
-      <div class="label" style="margin-bottom:0">Latest headlines</div>
+      <div class="label ptitle" style="margin-bottom:0">Latest headlines</div>
       <div>${newsDays(shown, 3, 4)}</div>
       <details class="drop"><summary>More stories</summary>${newsDays(shown, 120)}</details>
       <p class="note">Headlines and links via Google News. Tags are keyword-based.</p>
