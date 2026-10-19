@@ -527,6 +527,8 @@ def news_feed(df, limit_days, skip_days=0, per_day=None):
 def fmt_usd(x):
     if x is None or x != x:  # None or NaN
         return "—"
+    if x == 0:
+        return "$0"
     if abs(x) >= 1e9:
         return f"${x / 1e9:,.2f}bn"
     if abs(x) >= 1e6:
