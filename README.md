@@ -22,6 +22,7 @@ streamlit run app.py
 - `model.py` — outflow math (no UI)
 - `data.py` — yfinance downloads, caching, weights, valuation, event windows
 - `news.py` — fetch, dedupe and tag headlines (`python news.py` to refresh)
+- `update_data.py` — refresh the fundamentals snapshot `data/fundamentals.csv` (`python update_data.py`)
 - `components.py` — shared styling and UI building blocks
 - `companies.py` — short profiles shown when a home-page ticker is clicked
 

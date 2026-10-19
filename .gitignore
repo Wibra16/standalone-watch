@@ -5,6 +5,7 @@ __pycache__/
 .streamlit/secrets.toml
 data/*.csv
 !data/news.csv
+!data/fundamentals.csv
 !data/daily_market.csv
 .DS_Store
 

@@ -9,11 +9,10 @@ import model
 from components import (panel, assumption, company_card, scroll_to, explainer, fmt_pct, fmt_usd, formula, nav_arrow, section)
 from config import BLACK, FONT, GREY, RED, RULE, WHITE
 
-with st.spinner("Loading prices for 23 stocks…"):
+with st.spinner("Loading market data…"):
     fx = data.load_prices(config.FX_TICKER)
-    prices = {t[0]: data.load_prices(t[0]) for t in config.UNIVERSE}
-    for t in config.UNIVERSE:
-        data.load_info(t[0])  # warm the fundamentals cache
+    prices = data.load_many(tuple(t[0] for t in config.UNIVERSE))
+    data.load_fundamentals(tuple(t[0] for t in config.UNIVERSE))  # snapshot, instant
 
 section("02", "Forced-selling simulator", "ILLUSTRATIVE ESTIMATES — NOT INVESTMENT ADVICE")
 with panel("explainer"):

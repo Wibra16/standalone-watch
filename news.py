@@ -6,6 +6,7 @@ We keep only headline, source, link and date (never full article text).
 Run on its own to refresh:  python news.py
 """
 import re
+from concurrent.futures import ThreadPoolExecutor
 import urllib.parse
 from datetime import datetime, timezone
 from difflib import SequenceMatcher
@@ -41,11 +42,21 @@ def _norm(title):
     return re.sub(r"[^a-z0-9 ]", "", title.lower())
 
 
+def _similar(a, b, cutoff=0.85):
+    """True if two normalised headlines are >= 85% alike. The two quick checks
+    are upper bounds on the real score, so they skip clearly different pairs
+    without changing the result (and make this ~50x faster)."""
+    sm = SequenceMatcher(None, a, b)
+    return sm.real_quick_ratio() >= cutoff and sm.quick_ratio() >= cutoff and sm.ratio() >= cutoff
+
+
 def fetch():
     """Download all queries and return a deduplicated DataFrame."""
     rows = []
-    for query, lang in config.NEWS_QUERIES:
-        feed = feedparser.parse(_feed_url(query, lang))
+    # Fetch all searches at the same time (each one mostly waits on the network)
+    with ThreadPoolExecutor(max_workers=len(config.NEWS_QUERIES)) as pool:
+        feeds = list(pool.map(lambda ql: (feedparser.parse(_feed_url(*ql)), ql[1]), config.NEWS_QUERIES))
+    for feed, lang in feeds:
         for e in feed.entries:
             source = e.get("source", {}).get("title", "")
             title = _clean_title(e.get("title", ""), source)
@@ -60,10 +71,12 @@ def fetch():
 
     # Deduplicate: same link, then near-identical headlines (>85% similar)
     df = df.sort_values("published", ascending=False).drop_duplicates("link")
-    kept = []
+    kept, kept_norms = [], []
     for _, r in df.iterrows():
-        if all(SequenceMatcher(None, _norm(r.headline), _norm(k.headline)).ratio() < 0.85 for k in kept):
+        h = _norm(r.headline)
+        if not any(_similar(h, k) for k in kept_norms):
             kept.append(r)
+            kept_norms.append(h)
     df = pd.DataFrame(kept)
     # Keep stories that hit at least one tag (filters out unrelated rupiah noise, etc.)
     return df[df["tags"] != ""].reset_index(drop=True)

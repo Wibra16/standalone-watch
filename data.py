@@ -3,6 +3,7 @@ data.py — download prices from Yahoo Finance (yfinance), cache them, and
 save a copy to data/ so we don't re-download on every click.
 """
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pandas as pd
@@ -43,6 +44,31 @@ def load_prices(ticker, start="2026-01-01"):
     return pd.DataFrame()
 
 
+@st.cache_data(ttl=60 * 60, show_spinner=False)
+def load_many(tickers, start="2026-01-01"):
+    """Daily OHLCV for many tickers in ONE request (much faster than one each).
+    Returns {ticker: DataFrame}; a ticker Yahoo didn't return falls back to
+    load_prices (saved CSV), and is empty if nothing is available."""
+    tickers = list(tickers)
+    out = {}
+    try:
+        with _YF_LOCK:
+            raw = yf.download(tickers, start=start, progress=False, auto_adjust=False,
+                              group_by="ticker", threads=True)
+        for t in tickers:
+            if isinstance(raw.columns, pd.MultiIndex) and t in raw.columns.get_level_values(0):
+                df = raw[t].dropna(how="all")
+                if not df.empty and "Close" in df:
+                    df.to_csv(DATA_DIR / f"{t.replace('^', '').replace('=', '_')}.csv")
+                    out[t] = df
+    except Exception:
+        pass
+    for t in tickers:          # anything missing: single download / saved copy
+        if t not in out:
+            out[t] = load_prices(t, start)
+    return out
+
+
 def change_since(df, date=config.ANNOUNCEMENT_DATE):
     """% change from the close on `date` (or the last close before it) to today."""
     if df.empty:
@@ -62,17 +88,43 @@ def avg_daily_traded_value_usd(df, fx_df, window=config.ADV_WINDOW):
     return traded_idr / fx_df["Close"].iloc[-1]
 
 
-@st.cache_data(ttl=24 * 60 * 60, show_spinner=False)  # fundamentals change slowly
-def load_info(ticker):
-    """Float shares, P/E and P/B from yfinance. Missing values come back as None."""
-    keys = ["sharesOutstanding", "impliedSharesOutstanding", "heldPercentInsiders",
-            "trailingEps", "bookValue", "financialCurrency"]
+FUND_KEYS = ["sharesOutstanding", "impliedSharesOutstanding", "heldPercentInsiders",
+             "trailingEps", "bookValue", "financialCurrency"]
+FUND_CSV = DATA_DIR / "fundamentals.csv"
+
+
+def fetch_info(ticker):
+    """Live fundamentals for one ticker from yfinance (slow: ~0.3s each)."""
     try:
-        with _YF_LOCK:
-            info = yf.Ticker(ticker).info
-        return {k: info.get(k) for k in keys}
+        info = yf.Ticker(ticker).info
+        return {k: info.get(k) for k in FUND_KEYS}
     except Exception:
-        return {k: None for k in keys}
+        return {k: None for k in FUND_KEYS}
+
+
+@st.cache_data(ttl=24 * 60 * 60, show_spinner=False)  # fundamentals change slowly
+def load_fundamentals(tickers):
+    """Share counts, EPS and book value for many tickers.
+    Reads the snapshot in data/fundamentals.csv (instant; refreshed by
+    update_data.py), and fetches only missing tickers live, in parallel."""
+    snap = {}
+    if FUND_CSV.exists():
+        df = pd.read_csv(FUND_CSV, index_col=0)
+        snap = {t: {k: (None if pd.isna(v) else v) for k, v in row.items()} for t, row in df.iterrows()}
+    missing = [t for t in tickers if t not in snap]
+    if missing:
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            for t, info in zip(missing, pool.map(fetch_info, missing)):
+                snap[t] = info
+    return {t: snap[t] for t in tickers}
+
+
+def load_info(ticker):
+    """Fundamentals for one ticker (served from the shared snapshot above)."""
+    universe = tuple(t[0] for t in config.UNIVERSE)
+    if ticker in universe:
+        return load_fundamentals(universe)[ticker]
+    return load_fundamentals((ticker,))[ticker]
 
 
 def valuation(info, price_idr, usd_idr):

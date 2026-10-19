@@ -14,11 +14,8 @@ AR_EFFECTIVE = "2021-11-30"  # change takes effect at the November 2021 review
 
 # --- data -------------------------------------------------------------------
 with st.spinner("Loading Argentina market history…"):
-    merv = data.load_prices("^MERV", start="2020-06-01")
-    ars = data.load_prices("ARS=X", start="2020-06-01")
-    argt = data.load_prices("ARGT", start="2020-06-01")
-    ypf = data.load_prices("YPF", start="2020-06-01")
-    ggal = data.load_prices("GGAL", start="2020-06-01")
+    ar = data.load_many(("^MERV", "ARS=X", "ARGT", "YPF", "GGAL"), start="2020-06-01")  # one request
+    merv, ars, argt, ypf, ggal = (ar[t] for t in ("^MERV", "ARS=X", "ARGT", "YPF", "GGAL"))
     jci = data.load_prices(config.INDEX_TICKER, start="2026-06-01")
 
 # Merval is quoted in pesos; with ~50% inflation that hides the real loss.
