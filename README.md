@@ -1,4 +1,4 @@
-# Indonesia Standalone
+# Indonesia Stands Alone
 
 Interactive simulator of MSCI's proposed reclassification of Indonesia from Emerging to **Standalone** market status (proposed 15 Oct 2026).
 
