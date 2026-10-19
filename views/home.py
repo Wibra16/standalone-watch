@@ -11,6 +11,6 @@ st.markdown("<style>.block-container { max-width: 100% !important; padding-left:
 
 fx = data.load_prices(config.FX_TICKER)
 jci = data.load_prices(config.INDEX_TICKER)
-tape = data.last_closes(tuple(config.TOP40))
+tape = data.last_closes(tuple(config.TOP75))
 hero(data.change_since(jci), None if fx.empty else fx["Close"].iloc[-1], tape,
      None if jci.empty else f"{jci.index[-1]:%d %b %Y}")

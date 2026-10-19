@@ -2,6 +2,7 @@
 data.py — download prices from Yahoo Finance (yfinance), cache them, and
 save a copy to data/ so we don't re-download on every click.
 """
+import threading
 from pathlib import Path
 
 import pandas as pd
@@ -13,6 +14,10 @@ import config
 DATA_DIR = Path(__file__).parent / "data"
 DATA_DIR.mkdir(exist_ok=True)
 
+# yfinance is not thread-safe: two pages downloading at once can get each
+# other's data mixed in. One download at a time avoids that.
+_YF_LOCK = threading.Lock()
+
 
 @st.cache_data(ttl=60 * 60, show_spinner=False)  # refresh at most hourly
 def load_prices(ticker, start="2026-01-01"):
@@ -20,10 +25,15 @@ def load_prices(ticker, start="2026-01-01"):
     Returns an empty DataFrame if nothing is available (never fake data)."""
     path = DATA_DIR / f"{ticker.replace('^', '').replace('=', '_')}.csv"
     try:
-        df = yf.download(ticker, start=start, progress=False, auto_adjust=False)
-        if isinstance(df.columns, pd.MultiIndex):  # yfinance returns 2-level columns
-            df.columns = df.columns.get_level_values(0)
-        if not df.empty:
+        with _YF_LOCK:
+            df = yf.download(ticker, start=start, progress=False, auto_adjust=False, threads=False)
+        if isinstance(df.columns, pd.MultiIndex):  # (field, ticker) columns: keep only ours
+            if ticker in df.columns.get_level_values(1):
+                df = df.xs(ticker, axis=1, level=1)
+            else:
+                df.columns = df.columns.get_level_values(0)
+        df = df.loc[:, ~df.columns.duplicated()]
+        if not df.empty and "Close" in df:
             df.to_csv(path)
             return df
     except Exception:
@@ -58,7 +68,8 @@ def load_info(ticker):
     keys = ["sharesOutstanding", "impliedSharesOutstanding", "heldPercentInsiders",
             "trailingEps", "bookValue", "financialCurrency"]
     try:
-        info = yf.Ticker(ticker).info
+        with _YF_LOCK:
+            info = yf.Ticker(ticker).info
         return {k: info.get(k) for k in keys}
     except Exception:
         return {k: None for k in keys}
@@ -114,21 +125,39 @@ def event_window(close, day0, before=60, after=250):
     return out
 
 
-@st.cache_data(ttl=6 * 60 * 60, show_spinner=False)  # closing prices only change once a day
+class _Incomplete(Exception):
+    """Raised so st.cache_data does not keep a partial download."""
+    def __init__(self, rows):
+        self.rows = rows
+
+
 def last_closes(codes):
-    """Latest close and day % change for a list of IDX codes (one batch download).
-    Returns [(code, close, pct_change), ...] in the order given; skips failures."""
+    """Latest close and day % change for a list of IDX codes.
+    Returns [(code, close, pct_change), ...] in the order given; skips failures.
+    A partial result (e.g. Yahoo rate-limiting) is shown but not cached, so the
+    next visit tries again instead of keeping gaps for six hours."""
+    try:
+        return _last_closes_cached(codes)
+    except _Incomplete as e:
+        return e.rows
+
+
+@st.cache_data(ttl=6 * 60 * 60, show_spinner=False)  # closing prices only change once a day
+def _last_closes_cached(codes):
     tickers = [c + ".JK" for c in codes]
     try:
         # threads=False + timeout: parallel downloads can hang inside Streamlit,
         # which would freeze the home page instead of just skipping the tickers
-        df = yf.download(tickers, period="10d", progress=False, auto_adjust=False,
-                         threads=False, timeout=10)["Close"]
+        with _YF_LOCK:
+            df = yf.download(tickers, period="10d", progress=False, auto_adjust=False,
+                             threads=False, timeout=10)["Close"]
     except Exception:
-        return []
+        raise _Incomplete([])
     out = []
     for code, t in zip(codes, tickers):
         s = df[t].dropna() if t in df else pd.Series(dtype=float)
         if len(s) >= 2:
             out.append((code, float(s.iloc[-1]), float(s.iloc[-1] / s.iloc[-2] * 100 - 100)))
+    if len(out) < 0.9 * len(codes):
+        raise _Incomplete(out)
     return out

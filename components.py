@@ -124,6 +124,14 @@ def apply_style():
         .sw-co .chip {{ font-size: .68rem; color: {WHITE}; border: 1px solid #262626; border-radius: 999px;
             padding: 4px 11px; }}
 
+        /* table pager */
+        .sw-pager {{ text-align: center; color: {GREY}; font-size: .7rem; letter-spacing: .08em; padding-top: .55rem; }}
+        .sw-pager b {{ color: {WHITE}; font-weight: 400; }}
+        .st-key-pg_prev button, .st-key-pg_next button {{
+            background: transparent; border: 1px solid {PANEL_EDGE}; color: {WHITE}; border-radius: 8px;
+        }}
+        .st-key-pg_prev button:hover:enabled, .st-key-pg_next button:hover:enabled {{ border-color: {RED}; color: {RED}; }}
+
         /* every slider: room for the floating value above the handle */
         [data-testid="stSlider"] {{ padding-top: 1.8rem; }}
 
@@ -226,6 +234,7 @@ def hero(jci_change, fx_last, tape=None, tape_date=None):
     Rendered as HTML/JS so it ticks every second without re-running Python."""
     tape = tape or []
     half = (len(tape) + 1) // 2
+    roll_secs = max(70, round(half * 3.5))  # same calm speed however many stocks there are
     tapes = (_tape_column(tape[:half], "up") + _tape_column(tape[half:], "dn")) if tape else ""
     # data for the click-to-open company card: profile text + latest price
     cards = {code: {"name": p[0], "about": p[1], "products": p[2]} for code, p in PROFILES.items()}
@@ -265,8 +274,8 @@ def hero(jci_change, fx_last, tape=None, tape_date=None):
                        mask-image:linear-gradient(transparent, #000 18%, #000 82%, transparent); }}
       .tape.up {{ left:4vw; }}  .tape.dn {{ right:4vw; }}
       .roll {{ display:flex; flex-direction:column; }}
-      .tape.up .roll {{ animation:up 70s linear infinite; }}
-      .tape.dn .roll {{ animation:dn 70s linear infinite; }}
+      .tape.up .roll {{ animation:up {roll_secs}s linear infinite; }}
+      .tape.dn .roll {{ animation:dn {roll_secs}s linear infinite; }}
       .tape:hover .roll {{ animation-play-state:paused; }}
       @keyframes up {{ from {{ transform:translateY(0); }} to {{ transform:translateY(-50%); }} }}
       @keyframes dn {{ from {{ transform:translateY(-50%); }} to {{ transform:translateY(0); }} }}

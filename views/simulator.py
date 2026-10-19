@@ -142,10 +142,20 @@ with panel("table"):
     show["Flag"] = show["Oversold"].map({True: "OVERSOLD?", False: ""})
     show.loc[show["Status"] != "", "Flag"] = show["Status"]
     show[["Outflow", "ADV"]] = show[["Outflow", "ADV"]] / 1e6
+
+    # 15 stocks per page; the ‹ › buttons below move between pages
+    PAGE = 15
+    n_pages = max(1, -(-len(show) // PAGE))  # ceiling division
+    page = min(st.session_state.get("tbl_page", 0), n_pages - 1)
+
+    def turn(step):
+        st.session_state["tbl_page"] = max(0, min(n_pages - 1, page + step))
+
+    view = show.iloc[page * PAGE:(page + 1) * PAGE]
     event = st.dataframe(
-        show[["Ticker", "Weight", "Outflow", "ADV", "Days", "P/B", "P/E", "Since", "Flag"]],
-        hide_index=True, use_container_width=True, height=(len(show) + 1) * 35 + 3,
-        on_select="rerun", selection_mode="single-row", key="stock_table",
+        view[["Ticker", "Weight", "Outflow", "ADV", "Days", "P/B", "P/E", "Since", "Flag"]],
+        hide_index=True, use_container_width=True, height=(len(view) + 1) * 35 + 3,
+        on_select="rerun", selection_mode="single-row", key=f"stock_table_{page}",
         column_config={
             "Ticker": st.column_config.TextColumn("Ticker", help=GLOSSARY["Ticker"]),
             "Weight": st.column_config.NumberColumn("Wt", format="percent", help=GLOSSARY["Wt"]),
@@ -160,9 +170,18 @@ with panel("table"):
     )
     # Clicking a row selects that stock in the detail box below (only when the
     # click changes, so the dropdown still works on its own afterwards)
+    prev_col, label_col, next_col = st.columns([1, 6, 1])
+    prev_col.button("‹", key="pg_prev", on_click=turn, args=(-1,), disabled=page == 0, use_container_width=True)
+    next_col.button("›", key="pg_next", on_click=turn, args=(1,), disabled=page >= n_pages - 1,
+                    use_container_width=True)
+    label_col.markdown(
+        f'<div class="sw-pager">Page <b>{page + 1}</b> of {n_pages} &nbsp;·&nbsp; stocks '
+        f'{page * PAGE + 1}–{page * PAGE + len(view)} of {len(show)}, most forced selling first</div>',
+        unsafe_allow_html=True)
+
     jump = False
     if event.selection.rows:
-        clicked = show.iloc[event.selection.rows[0]]["_ticker"]
+        clicked = view.iloc[event.selection.rows[0]]["_ticker"]
         if clicked != st.session_state.get("last_clicked"):
             st.session_state["last_clicked"] = clicked
             st.session_state["pick"] = clicked

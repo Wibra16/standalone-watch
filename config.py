@@ -20,11 +20,13 @@ DECISION_CONFIRMED = False
 
 CONSULTATION_CLOSE = datetime(2027, 4, 30, 23, 59, tzinfo=WIB)
 
-# Top 40 IDX stocks by market cap (yfinance, 18 Oct 2026), for the home-page
-# ticker columns. Prices refresh daily; re-rank occasionally if needed.
-TOP40 = """BBCA DCII BBRI BYAN BMRI AMMN BREN TLKM ASII SMMA BRPT DSSA BBNI TPIA CASA UNTR PANI AADI
-ICBP HMSP ADRO ANTM CUAN MDKA BNLI INDF ISAT UNVR BRIS BUMI MEGA NCKL AMRT BDMN CPIN MBMA INKP
-BNGA BELI INCO""".split()
+# Top 75 IDX stocks by market cap (yfinance, 19 Oct 2026), largest first.
+# The home page scrolls through all 75; the simulator uses the top 40.
+TOP75 = """BBCA DCII BBRI BYAN BMRI AMMN BREN TLKM ASII DNET SMMA MPRO DSSA BRPT BBNI TPIA CASA UNTR AADI
+PANI HMSP ICBP ADRO ANTM INDF CUAN BNLI MDKA ISAT UNVR BRIS BUMI NCKL ADMR MEGA BDMN GEMS AMRT CPIN
+INCO MBMA BELI BNGA INKP PGEO TAPG PTBA MTEL MLPT CMRY MEDC ENRG PTRO EXCL MYOR PGAS KLBF GGRM ITMG
+TBIG GOTO TINS NISP SILO AKRA TOWR ULTJ MAPI SRTG MKPI EMTK JPFA MIKA TKIM AVIA""".split()
+TOP40 = TOP75[:40]
 
 # Digital-finance names highlighted as the fintech focus (not in the top 40)
 FINTECH = ["GOTO", "ARTO", "BBHI"]
@@ -37,7 +39,7 @@ from companies import PROFILES  # noqa: E402
 
 UNIVERSE = [  # (yfinance ticker, name, sector, fintech?)
     (code + ".JK", PROFILES.get(code, (code,))[0], "", code in FINTECH)
-    for code in TOP40 + FINTECH
+    for code in TOP40 + [c for c in FINTECH if c not in TOP40]
 ]
 
 # ASSUMPTION: our stocks make up roughly this share of the MSCI Indonesia
