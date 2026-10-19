@@ -110,7 +110,7 @@ async function ghostChart() {                  // faint JCI line behind the coun
   const pts = c.map((v, i) => [i / (c.length - 1) * 1000, 30 + (hi - v) / (hi - lo) * 340].map(n => n.toFixed(1)).join(','));
   el.innerHTML = `<defs><linearGradient id="gf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e10600" stop-opacity=".22"/>
       <stop offset="1" stop-color="#e10600" stop-opacity="0"/></linearGradient>
-      <linearGradient id="gx" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".55" stop-color="#fff" stop-opacity=".5"/>
+      <linearGradient id="gx" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="1"/><stop offset=".55" stop-color="#fff" stop-opacity="1"/>
       <stop offset="1" stop-color="#fff" stop-opacity="1"/></linearGradient><mask id="gm"><rect width="1000" height="400" fill="url(#gx)"/></mask></defs>
     <g mask="url(#gm)"><path d="M0,400 L${pts.join(' L')} L1000,400Z" fill="url(#gf)"/>
     <polyline points="${pts.join(' ')}" fill="none" stroke="#e10600" stroke-width="1.5" vector-effect="non-scaling-stroke"/></g>`;
