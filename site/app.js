@@ -77,6 +77,18 @@ function plot(el, traces, layout) {             // Plotly loads in the backgroun
   }, layout), { displayModeBar: false, responsive: true });
 }
 
+/* sliders: red filled track + value bubble that follows the handle */
+const sliderHTML = (id, min, max, val, label) =>
+  `<div class="sl"><span class="bub" id="${id}V">${label}</span><input class="rng" type="range" id="${id}" min="${min}" max="${max}" value="${val}"></div>`;
+function paintSlider(el, label) {
+  const pct = (el.value - el.min) / (el.max - el.min) * 100;
+  el.style.setProperty('--p', pct + '%');
+  const bub = document.getElementById(el.id + 'V');
+  if (!bub) return;
+  if (label != null) bub.textContent = label;
+  bub.style.left = `calc(${pct}% + ${7 - pct * 0.14}px)`;      // keep the label centred over the 14px handle
+}
+
 /* ---------------------------------------------------------------- company card modal */
 function openCard(code) {
   $('#modalCard').innerHTML = `<button class="x" aria-label="Close">×</button>` + companyHTML(code, true);
@@ -91,7 +103,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCard();
 function renderHome(view) {
   const m = S.market, tape = m.tape, half = Math.ceil(tape.length / 2);
   const col = (rows, dir) => {
-    const items = rows.map(t => `<div class="t" data-code="${t.code}"><span class="c">${t.code}</span>` +
+    const items = rows.map(t => `<div class="tk" data-code="${t.code}"><span class="c">${t.code}</span>` +
       `<span class="p">${Math.round(t.close).toLocaleString('en-US')}</span>` +
       `<span class="x ${t.chg < 0 ? 'dn-c' : 'up-c'}">${t.chg < 0 ? '▼' : '▲'} ${Math.abs(t.chg).toFixed(1)}%</span></div>`).join('');
     return `<div class="tape ${dir}"><div class="roll">${items}${items}</div></div>`;
@@ -119,7 +131,7 @@ function renderHome(view) {
       <div class="mkt">JCI <span class="red">${fmtPct(m.jci_change)}</span> &nbsp;&nbsp; USD/IDR <span>${fmt(m.fx_last, 0)}</span> &nbsp;&nbsp; since 15 Oct</div>
       <a class="down" href="#/news" title="Latest news">↓</a>
     </section>`;
-  $$('.t, .th', view).forEach(el => el.addEventListener('click', () => openCard(el.dataset.code)));
+  $$('.tk, .th', view).forEach(el => el.addEventListener('click', () => openCard(el.dataset.code)));
   tick();
 }
 
@@ -199,8 +211,10 @@ function renderSimulator(view) {
   const I = sim.inputs;
   const card = (k, title, text, input) =>
     `<div class="acard"><span class="k">${k}</span>${title}<div class="x">${text}</div>${input}</div>`;
-  const slider = (id, min, max, val, unit) =>
-    `<div class="row"><input type="range" id="${id}" min="${min}" max="${max}" value="${val}"><span class="val" id="${id}V">${val}${unit}</span></div>`;
+  const slider = (id, min, max, val, unit) => sliderHTML(id, min, max, val, val + unit);
+  const numbox = (id, min, max, step, val) =>
+    `<div class="num"><input type="text" inputmode="decimal" id="${id}" min="${min}" max="${max}" step="${step}" value="${val}">` +
+    `<button data-for="${id}" data-dir="-1" aria-label="Decrease">−</button><button data-for="${id}" data-dir="1" aria-label="Increase">+</button></div>`;
 
   view.innerHTML = section('02', 'Forced-selling simulator', 'Illustrative estimates — not investment advice') + `
   <div class="panel"><div class="steps">
@@ -217,9 +231,9 @@ function renderSimulator(view) {
     <details class="drop hot"><summary>Change the assumptions · drag the sliders and watch the numbers move</summary><div class="inner agrid">
       <div>
         ${card('A1', 'Passive money tracking MSCI EM', 'Dollars in index funds that copy MSCI Emerging Markets, in billions (500 = $500bn). Rough industry estimate.',
-               `<input type="number" id="aum" min="0" max="20000" step="50" value="${I.aum}">`)}
+               numbox('aum', 0, 20000, 50, I.aum))}
         ${card('A2', "Indonesia's share of the index", 'Of every $100 in an EM fund, about this much is in Indonesian stocks. In reality it has been roughly 1–3%; try other values to stress-test.',
-               `<input type="number" id="weight" min="0" max="100" step="0.1" value="${I.weight.toFixed(1)}">`)}
+               numbox('weight', 0, 100, 0.1, I.weight.toFixed(1)))}
         ${card('A3', 'Share of funds that actually sell', '100% means every tracker exits. Lower it if some funds keep holdings or have flexible mandates.', slider('sell', 0, 100, I.sell, '%'))}
       </div>
       <div>
@@ -233,7 +247,7 @@ function renderSimulator(view) {
   <div class="panel" id="tablePanel">
     <div class="label">Forced selling vs fundamentals</div>
     <div class="tablewrap"><table class="stocks"><thead><tr>
-      ${['Ticker', 'Wt', 'Out $m', 'ADV $m', 'Days', 'P/B', 'P/E', 'Δ 15 Oct', 'Flag'].map(h => `<th title="${esc(GLOSSARY[h])}">${h === 'Flag' ? '' : h}</th>`).join('')}
+      <th class="ck"></th>${['Ticker', 'Wt', 'Out $m', 'ADV $m', 'Days', 'P/B', 'P/E', 'Δ 15 Oct', 'Flag'].map(h => `<th title="${esc(GLOSSARY[h])}">${h === 'Flag' ? '' : h}</th>`).join('')}
     </tr></thead><tbody id="tbody"></tbody></table></div>
     <div class="pager"><button id="prev" aria-label="Previous page">‹</button><div class="lbl" id="pgLbl"></div><button id="next" aria-label="Next page">›</button></div>
     <p class="note"><span class="red">Click any row</span> to see what the company does and its numbers below. Hover over a column name for a quick explanation.</p>
@@ -267,12 +281,21 @@ function renderSimulator(view) {
   }));
   const units = { sell: '%', prob: '%', part: '%', days: ' days' };
   ['aum', 'weight', 'sell', 'prob', 'part', 'days'].forEach(id => $('#' + id).addEventListener('input', e => {
-    const v = parseFloat(e.target.value);
+    const v = parseFloat(String(e.target.value).replace(',', '.'));
     if (!isNum(v)) return;
-    I[id] = Math.min(parseFloat(e.target.max), Math.max(parseFloat(e.target.min), v));
-    if (units[id]) $('#' + id + 'V').textContent = I[id] + units[id];
+    const lo = parseFloat(e.target.getAttribute('min')), hi = parseFloat(e.target.getAttribute('max'));
+    I[id] = Math.min(hi, Math.max(lo, v));
+    if (units[id]) paintSlider(e.target, I[id] + units[id]);
     simUpdate();
   }));
+  $$('.num button', view).forEach(b => b.addEventListener('click', () => {
+    const inp = $('#' + b.dataset.for), step = parseFloat(inp.getAttribute('step'));
+    const cur = parseFloat(String(inp.value).replace(',', '.')) || 0;
+    const v = Math.round((cur + step * b.dataset.dir) / step) * step;
+    inp.value = Math.min(parseFloat(inp.getAttribute('max')), Math.max(parseFloat(inp.getAttribute('min')), v)).toFixed(step < 1 ? 1 : 0);
+    inp.dispatchEvent(new Event('input'));
+  }));
+  $$('.rng', view).forEach(r => paintSlider(r));
   $('#prev').addEventListener('click', () => { sim.page--; simTable(); });
   $('#next').addEventListener('click', () => { sim.page++; simTable(); });
   $('#pick').addEventListener('change', e => { sim.pick = e.target.value; simTable(); simStock(); });
@@ -300,7 +323,7 @@ function simTable() {
   const view = rows.slice(sim.page * PAGE, (sim.page + 1) * PAGE);
   const cell = (v, txt) => `<td class="${isNum(v) ? '' : 'na'}">${isNum(v) ? txt : 'None'}</td>`;
   $('#tbody').innerHTML = view.map(r => `<tr data-code="${r.code}" class="${r.code === sim.pick ? 'sel' : ''}">
-      <td>${r.code}${r.fintech ? ' ◆' : ''}</td>
+      <td class="ck"><span></span></td><td>${r.code}${r.fintech ? ' ◆' : ''}</td>
       <td>${isNum(r.weight) ? (r.weight * 100).toFixed(2).replace(/\.?0+$/, '') + '%' : 'None'}</td>
       ${cell(r.out, fmt(r.out / 1e6, 0))}${cell(r.adv, fmt(r.adv / 1e6, 1))}${cell(r.days, fmt(r.days, 1))}
       ${cell(r.pb, fmt(r.pb, 1))}${cell(r.pe, fmt(r.pe, 1))}${cell(r.since, fmtPct(r.since))}
@@ -361,8 +384,10 @@ async function renderArgentina(view) {
   <div class="panel">
     <div class="label">How the market moved, before vs after the announcement</div>
     <p class="note" style="margin-top:0">Two different years on one clock. Each line counts trading days from <b>its own country's announcement</b> (Argentina: 24 Jun 2021 · Indonesia: 15 Oct 2026), and every line is rescaled so that day equals 100. Left of 0 is the run-up; right of 0 is what happened after. Below 100 means lower than on announcement day.</p>
-    <div class="range">From <b id="loV">${ar.lo}</b><input type="range" id="lo" min="-60" max="0" value="${ar.lo}">
-                       To <b id="hiV">+${ar.hi}</b><input type="range" id="hi" min="20" max="250" value="${ar.hi}"> trading days</div>
+    <div class="range">
+      <div><div class="lab">Days before the announcement</div>${sliderHTML('lo', -60, 0, ar.lo, ar.lo)}</div>
+      <div><div class="lab">Days after the announcement</div>${sliderHTML('hi', 20, 250, ar.hi, '+' + ar.hi)}</div>
+    </div>
     <div id="arChart"></div>
     <p class="takeaway" id="arTake"></p>
     <p class="note">ARGT is a US-listed ETF of Argentine companies (it includes MercadoLibre), so it shows the hit in dollars. The Merval is converted at the official peso rate, which understates the true currency loss. The red line only runs to today, because Indonesia's story is still unfolding and we never use future data for it. ARGT's later lows also reflect Argentina's inflation and November 2021 elections, not only MSCI.</p>
@@ -384,9 +409,10 @@ async function renderArgentina(view) {
   ${navArrow('#/', 'Back to the countdown', '↑')}`;
   ['lo', 'hi'].forEach(id => $('#' + id).addEventListener('input', e => {
     ar[id] = parseInt(e.target.value, 10);
-    $('#' + id + 'V').textContent = (id === 'hi' ? '+' : '') + ar[id];
+    paintSlider(e.target, (id === 'hi' ? '+' : '') + ar[id]);
     arChart();
   }));
+  $$('.rng', view).forEach(r => paintSlider(r));
   arChart();
 }
 
