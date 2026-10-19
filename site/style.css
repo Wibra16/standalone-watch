@@ -359,9 +359,11 @@ table.stocks td.na { color: #3a3a3a; }
 .label.ptitle::before { content: ""; display: inline-block; width: 8px; height: 8px; background: #e10600; margin-right: 10px; vertical-align: 1px; }
 
 /* faint falling JCI chart behind the countdown */
-.hero .ghost { position: absolute; left: 0; right: 0; top: 18%; height: 56%; width: 100%; z-index: 0; pointer-events: none; opacity: .55;
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 25%, #000 70%, transparent);
-          mask-image: linear-gradient(to bottom, transparent, #000 25%, #000 70%, transparent); }
+.hero .ghost { position: absolute; left: calc(4vw + 240px); right: calc(4vw + 240px); width: auto; top: 22%; height: 50%; z-index: 0; pointer-events: none; opacity: .55;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 25%, #000 70%, transparent), linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+  -webkit-mask-composite: source-in; mask-composite: intersect;
+          mask-image: linear-gradient(to bottom, transparent, #000 25%, #000 70%, transparent), linear-gradient(to right, transparent, #000 12%, #000 88%, transparent); }
+@media (max-width: 1000px) { .hero .ghost { left: 16px; right: 16px; } }
 .hero .title, .hero .clock, .hero .cap { position: relative; z-index: 1; } .hero .tape, .hero .tape-h, .hero .bottom { z-index: 1; }
 
 /* Argentina photos: desaturated, darkened, caption over a fade */

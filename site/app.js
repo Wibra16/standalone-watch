@@ -265,7 +265,16 @@ async function renderNews(view) {
   const all = S.news.stories;
   const shown = newsLang === 'All' ? all : all.filter(s => s.lang === (newsLang === 'English' ? 'en' : 'id'));
   const updated = new Date(S.news.generated).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
-  view.innerHTML = section('01', 'The downgrade, day by day', `Updated ${updated} WIB · ${all.length} stories`) + marketPanel() + socialPanel() + `
+  view.innerHTML = section('01', 'The downgrade, day by day', `Updated ${updated} WIB · ${all.length} stories`) + `
+    <figure class="photo hero-ph"><img src="img/jakarta.jpg" alt="Jakarta's business district at night, Jalan Rasuna Said" loading="lazy">
+      <figcaption><span>Jakarta, waiting on a decision made in New York.</span><small>Robin Widjaja · CC BY-SA 4.0</small></figcaption></figure>` +
+    marketPanel() + socialPanel() + `
+    <div class="photos">
+      <figure class="photo"><img src="img/idx.jpg" alt="Indonesia Stock Exchange building, Jakarta" loading="lazy">
+        <figcaption><span>The Indonesia Stock Exchange.</span><small>Bursa Efek Indonesia · CC BY-SA 4.0</small></figcaption></figure>
+      <figure class="photo"><img src="img/monas.jpg" alt="The National Monument (Monas), Jakarta, lit at night" loading="lazy">
+        <figcaption><span>Monas, central Jakarta.</span><small>Office of the Jakarta Governor · public domain</small></figcaption></figure>
+    </div>
     <div class="panel">
       <div class="label ptitle" style="margin-bottom:0">Latest headlines</div>
       <div>${newsDays(shown, 3, 4)}</div>
