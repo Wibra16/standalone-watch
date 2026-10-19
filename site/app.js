@@ -68,6 +68,11 @@ function companyHTML(code, withPrice) {
          `<div class="ab">${esc(p.about) || 'Profile coming soon.'}</div>` +
          (chips ? `<div class="pl">KNOWN FOR</div><div class="chips">${chips}</div>` : '');
 }
+const candleText = (d, o, h, l, c, pre = '', week = false) => d.map((x, i) => {   // tooltip: date first, then OHLC
+  const f = v => isNum(v) ? pre + (pre ? v.toFixed(2) : Math.round(v).toLocaleString('en-US')) : '—';
+  return `<b>${week ? 'Week of ' : ''}${new Date(x + 'T00:00:00').toLocaleDateString('en-GB', { weekday: week ? undefined : 'short', day: '2-digit', month: 'short', year: 'numeric' })}</b><br>` +
+    `open ${f(o[i])}<br>high ${f(h[i])}<br>low ${f(l[i])}<br>close ${f(c[i])}`;
+});
 function plot(el, traces, layout) {             // Plotly loads in the background; wait for it if needed
   if (!el) return;
   if (!window.Plotly) return setTimeout(() => plot(el, traces, layout), 150);
@@ -196,6 +201,7 @@ function marketDraw() {
   const c = mk.freq === 'Weekly' ? weekly(s) : s;
   plot($('#mkChart'), [{
     type: 'candlestick', x: c.d, open: c.o, high: c.h, low: c.l, close: c.c,
+    text: candleText(c.d, c.o, c.h, c.l, c.c, mk.asset === 'eido' ? '$' : '', mk.freq === 'Weekly'), hoverinfo: 'text',
     increasing: { line: { color: WHITE, width: 1 }, fillcolor: WHITE }, decreasing: { line: { color: RED, width: 1 }, fillcolor: RED },
     hoverlabel: { bgcolor: '#0b0b0b' }, whiskerwidth: 0,
   }], {
@@ -491,6 +497,7 @@ function simStock() {
   const shape = { type: 'line', x0: S.cfg.announcement, x1: S.cfg.announcement, yref: 'paper', y0: 0, y1: 1, line: { color: RED, width: 1, dash: 'dot' } };
   const trace = r.open ? {
     type: 'candlestick', x: r.dates, open: r.open, high: r.high, low: r.low, close: r.close, whiskerwidth: 0,
+    text: candleText(r.dates, r.open, r.high, r.low, r.close), hoverinfo: 'text',
     increasing: { line: { color: WHITE, width: 1 }, fillcolor: WHITE }, decreasing: { line: { color: RED, width: 1 }, fillcolor: RED },
   } : { x: r.dates, y: r.close, mode: 'lines', line: { color: WHITE, width: 1.2 } };
   plot($('#stockChart'), [trace], { margin: { l: 0, r: 56, t: 10, b: 28 }, hovermode: 'x', shapes: i0 >= 0 ? [shape] : [],
