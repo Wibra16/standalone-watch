@@ -63,7 +63,8 @@ for ticker, name, _sector, fintech in config.UNIVERSE:
     info = data.load_info(ticker)
     pe, pb = (data.valuation(info, df["Close"].iloc[-1], usd_idr)
               if usd_idr and not df.empty else (None, None))
-    closes = df["Close"].dropna() if not df.empty else pd.Series(dtype=float)
+    bars = df.dropna(subset=["Open", "High", "Low", "Close"]) if not df.empty else pd.DataFrame(columns=["Open", "High", "Low", "Close"])
+    closes = bars["Close"]
     stocks.append({
         "code": ticker.replace(".JK", ""),
         "name": name,
@@ -76,6 +77,9 @@ for ticker, name, _sector, fintech in config.UNIVERSE:
         "pb": num(pb, 2),
         "dates": [d.strftime("%Y-%m-%d") for d in closes.index],
         "close": [num(v, 2) for v in closes.values],
+        "open": [num(v, 2) for v in bars["Open"].values],
+        "high": [num(v, 2) for v in bars["High"].values],
+        "low": [num(v, 2) for v in bars["Low"].values],
     })
 
 tape = [{"code": c, "close": num(p, 2), "chg": num(ch, 2)} for c, p, ch in data.last_closes(tuple(config.TOP75))]

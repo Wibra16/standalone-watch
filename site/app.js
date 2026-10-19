@@ -103,6 +103,19 @@ $('#modal').addEventListener('click', e => { if (e.target.id === 'modal' || e.ta
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCard(); });
 
 /* ================================================================ HOME */
+async function ghostChart() {                  // faint JCI line behind the countdown, fading in from the left
+  try { S.candles = S.candles || await getJSON('candles.json'); } catch { return; }
+  const el = $('#ghost'); if (!el) return;
+  const c = S.candles.jci.c.filter(isNum).slice(-260), lo = Math.min(...c), hi = Math.max(...c);
+  const pts = c.map((v, i) => [i / (c.length - 1) * 1000, 30 + (hi - v) / (hi - lo) * 340].map(n => n.toFixed(1)).join(','));
+  el.innerHTML = `<defs><linearGradient id="gf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e10600" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#e10600" stop-opacity="0"/></linearGradient>
+      <linearGradient id="gx" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".55" stop-color="#fff" stop-opacity=".5"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="1"/></linearGradient><mask id="gm"><rect width="1000" height="400" fill="url(#gx)"/></mask></defs>
+    <g mask="url(#gm)"><path d="M0,400 L${pts.join(' L')} L1000,400Z" fill="url(#gf)"/>
+    <polyline points="${pts.join(' ')}" fill="none" stroke="#e10600" stroke-width="1.5" vector-effect="non-scaling-stroke"/></g>`;
+}
+
 function renderHome(view) {
   const m = S.market, tape = m.tape, half = Math.ceil(tape.length / 2);
   const col = (rows, dir) => {
@@ -121,6 +134,7 @@ function renderHome(view) {
   const dec = new Date(S.cfg.decision).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Jakarta' });
   view.innerHTML = `
     <section class="hero" style="--dur:${dur}s">
+      <svg class="ghost" id="ghost" viewBox="0 0 1000 400" preserveAspectRatio="none" aria-hidden="true"></svg>
       ${col(tape.slice(0, half), 'up')}${col(tape.slice(half), 'dn')}
       ${row(tape.slice(0, half), 'l')}${row(tape.slice(half), 'r')}
       <div class="title">Indonesia, <span class="red">downgraded?</span></div>
@@ -137,7 +151,7 @@ function renderHome(view) {
       </div>
     </section>`;
   $$('.tk, .th', view).forEach(el => el.addEventListener('click', () => openCard(el.dataset.code)));
-  tick();
+  tick(); ghostChart();
 }
 
 /* ================================================================ MARKET CHECK (candlesticks) */
@@ -464,13 +478,14 @@ function simStock() {
       <div class="metric"><div class="k">Since 15 Oct</div><div class="v">${fmtPct(r.since)}</div></div>
     </div>${sentence}<div class="chart" id="stockChart"></div>`;
   const i0 = r.dates.findIndex(d => d >= S.cfg.announcement);
-  const hover = '%{x|%d %b}  IDR %{y:,.0f}<extra></extra>';
-  plot($('#stockChart'), [
-    { x: r.dates, y: r.close, mode: 'lines', line: { color: WHITE, width: 1.2 }, hovertemplate: hover },
-    ...(i0 >= 0 ? [{ x: r.dates.slice(i0), y: r.close.slice(i0), mode: 'lines+markers', line: { color: RED, width: 1.6 }, marker: { size: 4 }, hovertemplate: hover }] : []),
-  ], { margin: { l: 0, r: 56, t: 10, b: 28 },
-       xaxis: { showgrid: false, linecolor: RULE, type: 'date', tickformat: '%b %y', nticks: 8, showticklabels: true },
-       yaxis: { showgrid: true, gridcolor: '#141414', side: 'right', zeroline: false, tickformat: ',.0f', nticks: 6, showticklabels: true } });
+  const shape = { type: 'line', x0: S.cfg.announcement, x1: S.cfg.announcement, yref: 'paper', y0: 0, y1: 1, line: { color: RED, width: 1, dash: 'dot' } };
+  const trace = r.open ? {
+    type: 'candlestick', x: r.dates, open: r.open, high: r.high, low: r.low, close: r.close, whiskerwidth: 0,
+    increasing: { line: { color: WHITE, width: 1 }, fillcolor: WHITE }, decreasing: { line: { color: RED, width: 1 }, fillcolor: RED },
+  } : { x: r.dates, y: r.close, mode: 'lines', line: { color: WHITE, width: 1.2 } };
+  plot($('#stockChart'), [trace], { margin: { l: 0, r: 56, t: 10, b: 28 }, hovermode: 'x', shapes: i0 >= 0 ? [shape] : [],
+       xaxis: { showgrid: false, linecolor: RULE, type: 'date', tickformat: '%b %y', nticks: 8, rangeslider: { visible: false } },
+       yaxis: { showgrid: true, gridcolor: '#141414', side: 'right', zeroline: false, tickformat: ',.0f', nticks: 6 } });
 }
 
 /* ================================================================ ARGENTINA */
@@ -489,6 +504,8 @@ async function renderArgentina(view) {
     ['2022 – 2026', 'Still Standalone', 'Annual reviews keep Argentina in the lowest tier. Upgrade talk returns, but no move.', 0]];
   const arOut = 500e9 * 0.002, idOut = 500e9 * S.cfg.defaults.indonesia_weight / 100;
   view.innerHTML = section('03', 'Case study: Argentina, 2021', 'The last country MSCI made Standalone') + `
+  <figure class="photo hero-ph"><img src="img/obelisco.jpg" alt="The Obelisco on Avenida 9 de Julio, Buenos Aires, at night" loading="lazy">
+    <figcaption><span>Buenos Aires, where a market was left behind.</span><small>Obelisco at night · Banfield, public domain</small></figcaption></figure>
   <div class="panel">
     <p class="lede">In June 2021, MSCI did to Argentina what it now proposes for Indonesia. It cut the country from Emerging Markets to <b>Standalone</b>, the lowest tier. The reason was capital controls that had stopped foreign investors from moving money freely since 2019. Five years later, Argentina is still there.</p>
     <div class="stats">${stats.map(([v, c]) => `<div class="stat"><div class="v ${v.startsWith('-') ? 'r' : ''}">${v}</div><div class="c">${c}</div></div>`).join('')}</div>
@@ -496,6 +513,12 @@ async function renderArgentina(view) {
   <div class="panel"><div class="label">What happened</div><div class="tl">
     ${events.map(([d, h, b, hot]) => `<div class="e ${hot ? 'hot' : ''}"><div class="d">${d}</div><div><div class="h">${h}</div><div class="b">${b}</div></div></div>`).join('')}
   </div></div>
+  <div class="photos">
+    <figure class="photo"><img src="img/bolsa.jpg" alt="Bolsa de Comercio de Buenos Aires building" loading="lazy">
+      <figcaption><span>The Buenos Aires stock exchange.</span><small>Antonio García · CC BY 2.0</small></figcaption></figure>
+    <figure class="photo"><img src="img/casa.jpg" alt="Casa Rosada, seat of Argentina's government" loading="lazy">
+      <figcaption><span>Casa Rosada. Capital controls began here in 2019.</span><small>Juan Geracaris · CC BY 2.0</small></figcaption></figure>
+  </div>
   <div class="panel">
     <div class="label">How the market moved, before vs after the announcement</div>
     <p class="note" style="margin-top:0">Two different years on one clock. Each line counts trading days from <b>its own country's announcement</b> (Argentina: 24 Jun 2021 · Indonesia: 15 Oct 2026), and every line is rescaled so that day equals 100. Left of 0 is the run-up; right of 0 is what happened after. Below 100 means lower than on announcement day.</p>
