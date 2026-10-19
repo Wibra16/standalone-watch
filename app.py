@@ -5,7 +5,7 @@ Run with:  streamlit run app.py
 """
 import streamlit as st
 
-from components import apply_style, header_timer, remove_header_timer
+from components import apply_style, footer, header_timer, remove_header_timer
 
 st.set_page_config(page_title="Standalone Watch", page_icon="▼", layout="centered",
                    initial_sidebar_state="collapsed")
@@ -26,3 +26,4 @@ if nav.title == "Home":
 else:
     header_timer()
 nav.run()
+footer()  # credit, contact and legal notices on every tab

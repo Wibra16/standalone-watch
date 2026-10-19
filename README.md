@@ -23,3 +23,13 @@ streamlit run app.py
 - `data.py` — yfinance downloads, caching, weights, valuation, event windows
 - `news.py` — fetch, dedupe and tag headlines (`python news.py` to refresh)
 - `components.py` — shared styling and UI building blocks
+
+## Disclaimer
+Independent educational project. Not investment advice. Figures are illustrative estimates based on stated
+assumptions and free public data (Yahoo Finance, Google News). Not affiliated with MSCI Inc., IDX or OJK;
+all trademarks belong to their owners. Provided "as is" without warranty.
+
+## Author
+Created by Shakti Widjonakro · shakti.widjo@gmail.com
+
+© 2026 Shakti Widjonakro. All rights reserved.

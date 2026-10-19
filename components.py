@@ -92,6 +92,19 @@ def apply_style():
         iframe[height="0"] {{ display: none; }}
         .element-container:has(iframe[height="0"]) {{ display: none; }}
 
+        /* footer */
+        .sw-footer {{ margin-top: 5rem; padding: 2rem 0 1rem; border-top: 1px solid {RULE};
+            max-width: 980px; margin-left: auto; margin-right: auto; padding-left: 1.5rem; padding-right: 1.5rem; }}
+        .sw-footer .top {{ display: flex; flex-wrap: wrap; gap: 8px 40px; font-size: .78rem; color: {WHITE};
+            margin-bottom: 1.4rem; }}
+        .sw-footer .k {{ color: {RED}; font-size: .62rem; letter-spacing: .16em; text-transform: uppercase;
+            margin-right: 8px; }}
+        .sw-footer a {{ color: {WHITE} !important; text-decoration: none; border-bottom: 1px solid {GREY}; }}
+        .sw-footer a:hover {{ color: {RED} !important; border-color: {RED}; }}
+        .stMarkdown .sw-footer p {{ color: {GREY}; font-size: .66rem !important; line-height: 1.7; margin: 0 0 .7rem; }}
+        .sw-footer p b {{ color: {WHITE}; font-weight: 400; }}
+        .sw-footer .c {{ color: {GREY}; font-size: .64rem; letter-spacing: .1em; margin-top: 1.2rem; }}
+
         /* every slider: room for the floating value above the handle */
         [data-testid="stSlider"] {{ padding-top: 1.8rem; }}
 
@@ -419,3 +432,27 @@ def remove_header_timer():
     components.html("""<script>
       const el = window.parent.document.getElementById('sw-mini-timer'); if (el) el.remove();
     </script>""", height=0)
+
+
+def footer():
+    """Credit, contact and legal notices, shown at the bottom of every tab."""
+    st.markdown(f"""
+    <div class="sw-footer">
+      <div class="top">
+        <div><span class="k">Created by</span> {config.AUTHOR}</div>
+        <div><span class="k">Contact</span> <a href="mailto:{config.AUTHOR_EMAIL}">{config.AUTHOR_EMAIL}</a></div>
+      </div>
+      <p><b>Not investment advice.</b> Standalone Watch is an independent educational project. All figures are
+      illustrative estimates built on stated assumptions and free public data, which may be delayed, incomplete or
+      wrong. Nothing here is a recommendation to buy or sell any security. Do your own research and consult a licensed
+      adviser before making investment decisions.</p>
+      <p><b>No affiliation.</b> This site is not affiliated with, endorsed by or sponsored by MSCI Inc., the Indonesia
+      Stock Exchange (IDX), OJK, or any company mentioned. MSCI and other names are trademarks of their respective
+      owners and are used only to describe public events.</p>
+      <p><b>Data &amp; news.</b> Market data via Yahoo Finance (yfinance). Headlines link to their original publishers
+      via Google News; all articles remain the property of their publishers. Only headlines and links are shown.</p>
+      <p><b>No warranty.</b> Provided "as is" without warranty of any kind. The author accepts no liability for any loss
+      arising from use of this site.</p>
+      <div class="c">© {config.COPYRIGHT_YEAR} {config.AUTHOR}. All rights reserved.</div>
+    </div>
+    """, unsafe_allow_html=True)
