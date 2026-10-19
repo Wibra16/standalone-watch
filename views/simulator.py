@@ -175,7 +175,7 @@ with panel("table"):
                     use_container_width=True)
     label_col.markdown(
         f'<div class="sw-pager">Page <b>{page + 1}</b> of {n_pages} &nbsp;·&nbsp; stocks '
-        f'{page * PAGE + 1}–{page * PAGE + len(view)} of {len(show)}, most forced selling first</div>',
+        f'{page * PAGE + 1}–{page * PAGE + len(view)} of {len(show)}<span class="wide">, most forced selling first</span></div>',
         unsafe_allow_html=True)
 
     jump = False

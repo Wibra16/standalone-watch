@@ -121,7 +121,7 @@ with panel("chart"):
         height=420, margin=dict(l=0, r=0, t=10, b=0), plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
         font=dict(family=FONT, color=GREY, size=10), hovermode="x unified",
         legend=dict(orientation="h", y=-0.22, x=0, font=dict(size=10)),
-        xaxis=dict(showgrid=False, linecolor=RULE, zeroline=False,
+        xaxis=dict(showgrid=False, linecolor=RULE, zeroline=False, range=[lo, hi],
                    title=dict(text="trading days from each country's announcement", font=dict(size=10, color=GREY))),
         yaxis=dict(showgrid=False, side="right", zeroline=False),
     )

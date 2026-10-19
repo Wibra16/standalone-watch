@@ -194,11 +194,32 @@ def apply_style():
         .sw-takeaway b {{ color: {RED}; font-weight: 400; }}
 
         @media (max-width: 640px) {{
+            .block-container {{ padding-left: 1rem; padding-right: 1rem; }}
             .sw-day {{ grid-template-columns: 1fr; }}
-            .sw-steps, .sw-stats {{ grid-template-columns: 1fr 1fr; }}
+            .sw-stats {{ grid-template-columns: 1fr 1fr; }}
+            .sw-steps {{ grid-template-columns: 1fr; }}
+            .sw-stat:nth-child(odd) {{ padding-left: 0; border-left: none; }}
+            .sw-stat:nth-child(n+3) {{ border-top: 1px solid {RULE}; }}
             .sw-tl .e {{ grid-template-columns: 1fr; gap: 4px; }}
-            .sw-step + .sw-step {{ padding-left: 0; border-left: none; border-top: 1px solid {RULE}; }}
+            .sw-step {{ padding: 1.1rem 0 !important; }}
+            .sw-step + .sw-step {{ border-left: none; border-top: 1px solid {RULE}; }}
+            /* section header: title on its own line, note underneath */
+            .sw-section {{ flex-direction: column; align-items: flex-start; gap: .5rem; margin-top: 1rem; }}
+            /* live formulas: smaller so they wrap cleanly */
+            .sw-formula .v, .sw-formula .op {{ font-size: .9rem; }}
+            .sw-formula .eq {{ gap: 4px 8px; }}
+            .sw-lede {{ font-size: .86rem; }}
+            /* small countdown in the tab bar: numbers only */
+            #sw-mini-timer {{ right: 14px !important; font-size: 11px !important; }}
+            #sw-mini-timer .l {{ display: none; }}
+            .sw-pager .wide {{ display: none; }}
         }}
+        /* keep the ‹ page › controls on one row even on phones */
+        [data-testid="stHorizontalBlock"]:has(.st-key-pg_prev) {{ flex-wrap: nowrap !important; gap: .5rem; }}
+        [data-testid="stHorizontalBlock"]:has(.st-key-pg_prev) > div {{ min-width: 0 !important; width: auto !important; }}
+        [data-testid="stHorizontalBlock"]:has(.st-key-pg_prev) > div:nth-child(2) {{ flex: 1 1 auto !important; }}
+        [data-testid="stHorizontalBlock"]:has(.st-key-pg_prev) > div:nth-child(1),
+        [data-testid="stHorizontalBlock"]:has(.st-key-pg_prev) > div:nth-child(3) {{ flex: 0 0 56px !important; }}
         </style>
         """,
         unsafe_allow_html=True,
@@ -228,6 +249,15 @@ def _tape_column(rows, direction):
     return f'<div class="tape {direction}"><div class="roll">{items}{items}</div></div>'
 
 
+def _tape_row(rows, direction):
+    """Horizontal ticker strip used on phones (doubled for a seamless loop)."""
+    items = "".join(
+        f'<span class="th" data-code="{code}"><b>{code}</b> {close:,.0f} '
+        f'<i class="{"dn" if chg < 0 else "up"}">{"▼" if chg < 0 else "▲"}{abs(chg):.1f}%</i></span>'
+        for code, close, chg in rows)
+    return f'<div class="tape-h {direction}"><div class="rollh">{items}{items}</div></div>'
+
+
 def hero(jci_change, fx_last, tape=None, tape_date=None):
     """Full-screen opening: the countdown, flanked by two slowly scrolling
     columns of the top 40 stocks' last close (left scrolls up, right down).
@@ -235,7 +265,8 @@ def hero(jci_change, fx_last, tape=None, tape_date=None):
     tape = tape or []
     half = (len(tape) + 1) // 2
     roll_secs = max(70, round(half * 3.5))  # same calm speed however many stocks there are
-    tapes = (_tape_column(tape[:half], "up") + _tape_column(tape[half:], "dn")) if tape else ""
+    tapes = (_tape_column(tape[:half], "up") + _tape_column(tape[half:], "dn")
+             + _tape_row(tape[:half], "l") + _tape_row(tape[half:], "r")) if tape else ""
     # data for the click-to-open company card: profile text + latest price
     cards = {code: {"name": p[0], "about": p[1], "products": p[2]} for code, p in PROFILES.items()}
     for code, close, chg in tape:
@@ -286,6 +317,28 @@ def hero(jci_change, fx_last, tape=None, tape_date=None):
       .t .x {{ text-align:right; }}
       .t .x.dn {{ color:{RED}; }}  .t .x.up {{ color:{WHITE}; }}
       @media (max-width: 1000px) {{ .tape {{ display:none; }} }}
+
+      /* phones & tablets: two horizontal strips instead of the side columns */
+      .tape-h {{ display:none; position:absolute; left:0; right:0; overflow:hidden;
+                 -webkit-mask-image:linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+                         mask-image:linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }}
+      .tape-h.l {{ top:6vh; }}
+      .tape-h.r {{ bottom:150px; }}
+      .rollh {{ display:flex; width:max-content; }}
+      .tape-h.l .rollh {{ animation:hl {roll_secs}s linear infinite; }}
+      .tape-h.r .rollh {{ animation:hr {roll_secs}s linear infinite; }}
+      @keyframes hl {{ from {{ transform:translateX(0); }} to {{ transform:translateX(-50%); }} }}
+      @keyframes hr {{ from {{ transform:translateX(-50%); }} to {{ transform:translateX(0); }} }}
+      .th {{ font-size:12px; color:{GREY}; padding:10px 16px; white-space:nowrap; cursor:pointer;
+             font-variant-numeric:tabular-nums; }}
+      .th b {{ color:{WHITE}; font-weight:400; letter-spacing:.05em; margin-right:4px; }}
+      .th i {{ font-style:normal; margin-left:4px; }}
+      .th i.dn {{ color:{RED}; }}  .th i.up {{ color:{WHITE}; }}
+      @media (max-width: 1000px) {{
+        .tape-h {{ display:block; }}
+        .cap {{ letter-spacing:.12em; font-size:10px; line-height:1.8; padding:0 16px; }}
+        .mkt {{ font-size:10px; bottom:96px; }}
+      }}
       .t {{ cursor:pointer; transition:background .15s; }}
       .t:hover {{ background:#0e0e0e; }}
       .t:hover .c {{ color:{RED}; }}
@@ -347,7 +400,7 @@ def hero(jci_change, fx_last, tape=None, tape_date=None):
       const CARDS = {cards_json};
       const bg = document.getElementById('cardbg');
       const esc = s => String(s).replace(/[&<>"]/g, ch => ({{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}}[ch]));
-      document.querySelectorAll('.t').forEach(row => row.addEventListener('click', () => {{
+      document.querySelectorAll('.t, .th').forEach(row => row.addEventListener('click', () => {{
         const code = row.dataset.code, d = CARDS[code] || {{name: code, about: '', products: []}};
         document.getElementById('cc').textContent = code + ' · IDX';
         document.getElementById('cn').textContent = d.name;
@@ -358,11 +411,11 @@ def hero(jci_change, fx_last, tape=None, tape_date=None):
         document.getElementById('ca').textContent = d.about || 'Profile coming soon.';
         document.getElementById('cx').innerHTML = (d.products || []).map(p => '<span class="chip">' + esc(p) + '</span>').join('');
         bg.classList.add('open');
-        document.querySelectorAll('.roll').forEach(r => r.style.animationPlayState = 'paused');
+        document.querySelectorAll('.roll, .rollh').forEach(r => r.style.animationPlayState = 'paused');
       }}));
       function closeCard() {{
         bg.classList.remove('open');
-        document.querySelectorAll('.roll').forEach(r => r.style.animationPlayState = '');
+        document.querySelectorAll('.roll, .rollh').forEach(r => r.style.animationPlayState = '');
       }}
       document.getElementById('cardx').addEventListener('click', closeCard);
       bg.addEventListener('click', e => {{ if (e.target === bg) closeCard(); }});
@@ -508,7 +561,7 @@ def header_timer():
         const ms = Math.max(0, {decision_ms} - Date.now());
         const d = Math.floor(ms / 864e5), h = Math.floor(ms % 864e5 / 36e5),
               m = Math.floor(ms % 36e5 / 6e4), s = Math.floor(ms % 6e4 / 1e3);
-        if (el) el.innerHTML = '<span style="font-size:10px;letter-spacing:.18em">{status}MSCI DECISION IN</span>&nbsp;&nbsp;' +
+        if (el) el.innerHTML = '<span class="l" style="font-size:10px;letter-spacing:.18em">{status}MSCI DECISION IN&nbsp;&nbsp;</span>' +
           '<span style="color:{WHITE}">' + d + 'D ' + p(h) + ':' + p(m) + ':</span><span style="color:{RED}">' + p(s) + '</span>';
       }}
       tick(); setInterval(tick, 1000);
