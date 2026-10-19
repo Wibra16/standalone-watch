@@ -93,8 +93,8 @@ def apply_style():
         .element-container:has(iframe[height="0"]) {{ display: none; }}
 
         /* footer */
-        .sw-footer {{ margin-top: 5rem; padding: 2rem 0 1rem; border-top: 1px solid {RULE};
-            max-width: 980px; margin-left: auto; margin-right: auto; padding-left: 1.5rem; padding-right: 1.5rem; }}
+        .sw-footer {{ margin-top: 0; padding: 0;
+            }}
         .sw-footer .top {{ display: flex; flex-wrap: wrap; gap: 8px 40px; font-size: .78rem; color: {WHITE};
             margin-bottom: 1.4rem; }}
         .sw-footer .k {{ color: {RED}; font-size: .62rem; letter-spacing: .16em; text-transform: uppercase;
@@ -434,8 +434,8 @@ def remove_header_timer():
     </script>""", height=0)
 
 
-def footer():
-    """Credit, contact and legal notices, shown at the bottom of every tab."""
+def about_block():
+    """Credit, contact and legal notices (shown on the About tab)."""
     st.markdown(f"""
     <div class="sw-footer">
       <div class="top">
