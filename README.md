@@ -30,6 +30,6 @@ assumptions and free public data (Yahoo Finance, Google News). Not affiliated wi
 all trademarks belong to their owners. Provided "as is" without warranty.
 
 ## Author
-Created by Shakti Widjonakro · shakti.widjo@gmail.com
+Created by Shakti Widjonarko · shakti.widjo@gmail.com
 
-© 2026 Shakti Widjonakro. All rights reserved.
+© 2026 Shakti Widjonarko. All rights reserved.
