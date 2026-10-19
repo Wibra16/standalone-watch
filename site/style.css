@@ -179,6 +179,24 @@ details.drop.hot > .inner { padding: 0 18px 20px; }
 .metric .v.neg { color: var(--red); }
 .candles { height: 360px; margin-top: 8px; }
 
+/* ---------- internet sentiment ---------- */
+.mood { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; font-size: 12px; min-width: 220px; }
+.mood .bar { display: flex; width: 220px; height: 6px; border-radius: 3px; overflow: hidden; background: #1a1a1a; }
+.mood .bar i { display: block; height: 100%; }
+.mood .bar .p { background: var(--white); } .mood .bar .u { background: #3a3a3a; } .mood .bar .n { background: var(--red); }
+.mood .muted { font-size: 10px; }
+.posts { margin-top: 18px; border-top: 1px solid var(--rule); }
+.post { display: grid; grid-template-columns: 26px 1fr auto; gap: 14px; align-items: start; padding: 14px 0;
+        border-bottom: 1px solid var(--rule); text-decoration: none; }
+.post:hover .pt { color: var(--red); }
+.post .rk { color: var(--red); font-size: 12px; padding-top: 2px; }
+.post .pt { font-size: 14px; line-height: 1.45; transition: color .15s; }
+.post .pm { display: block; color: var(--grey); font-size: 11px; margin-top: 4px; }
+.tone { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; border: 1px solid #2a2a2a; border-radius: 999px; padding: 3px 9px; white-space: nowrap; }
+.tone.negative { color: var(--red); border-color: rgba(225, 6, 0, .5); }
+.tone.positive { color: var(--white); border-color: #555; }
+.tone.neutral { color: var(--grey); }
+
 /* ---------- news ---------- */
 .day { display: grid; grid-template-columns: 92px 1fr; gap: 0 24px; padding: 18px 0; border-bottom: 1px solid var(--rule); }
 .day .d { color: var(--grey); font-size: 12px; letter-spacing: .08em; padding-top: 3px; line-height: 1.6; }
@@ -331,5 +349,7 @@ table.stocks td.na { color: #3a3a3a; }
   .lede, .takeaway { font-size: 14px; }
   #arChart { height: 360px; }
   .candles { height: 300px; }
+  .mood { align-items: flex-start; min-width: 0; }
+  .post { grid-template-columns: 22px 1fr; } .post .tone { grid-column: 2; justify-self: start; }
   .metrics[style*='--cols:4'] { grid-template-columns: 1fr 1fr; }
 }

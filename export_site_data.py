@@ -153,6 +153,17 @@ def ohlc(df):
 hist = data.load_many(("EIDO", config.INDEX_TICKER), start="2025-04-01")
 write("candles.json", {"eido": ohlc(hist["EIDO"]), "jci": ohlc(hist[config.INDEX_TICKER])})
 
+# --- internet sentiment (Reddit) -------------------------------------------------------
+import reddit  # noqa: E402
+
+try:
+    social = reddit.fetch()
+except Exception as err:          # API down / key revoked: keep the site working
+    print("  reddit:", err)
+    social = None
+write("social.json", {"generated": datetime.now(timezone.utc).isoformat(timespec="minutes"),
+                      "configured": social is not None, **(social or {"posts": []})})
+
 # --- settings the page needs (dates, defaults, scenarios, author) --------------------------
 write("config.json", {
     "announcement": config.ANNOUNCEMENT_DATE,

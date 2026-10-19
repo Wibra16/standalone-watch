@@ -200,6 +200,31 @@ function marketWire(view) {
   marketDraw();
 }
 
+/* ================================================================ INTERNET SENTIMENT (Reddit) */
+function socialPanel() {
+  const R = S.social;
+  if (!R || !R.configured || !R.posts.length) {
+    return `<div class="panel"><div class="label">Internet sentiment</div>
+      <p class="note" style="margin:0">Top Reddit posts about Indonesia's markets will appear here once the Reddit connection is set up.</p></div>`;
+  }
+  const k = n => n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n);
+  const ago = t => { const h = Math.max(1, Math.round((Date.now() / 1000 - t) / 3600)); return h < 48 ? h + 'h ago' : Math.round(h / 24) + 'd ago'; };
+  const moodWord = m => m >= 0.15 ? 'leaning positive' : m <= -0.15 ? 'leaning negative' : 'mixed';
+  const sp = R.split, total = Math.max(1, sp.positive + sp.neutral + sp.negative), pc = n => (n / total * 100).toFixed(0) + '%';
+  return `<div class="panel">
+    <div class="mk-head"><div><div class="label" style="margin-bottom:6px">Internet sentiment</div>
+      <div class="note" style="margin:0">Most-upvoted Reddit posts about Indonesia's markets, last ${R.window === 'day' ? '24 hours' : '7 days'}</div></div>
+      <div class="mood"><span class="${R.mood <= -0.15 ? 'dn-c' : ''}">Mood: ${moodWord(R.mood)}</span>
+        <div class="bar"><i class="p" style="width:${pc(sp.positive)}"></i><i class="u" style="width:${pc(sp.neutral)}"></i><i class="n" style="width:${pc(sp.negative)}"></i></div>
+        <span class="muted">${sp.positive} positive · ${sp.neutral} neutral · ${sp.negative} negative (of ${R.sample})</span></div></div>
+    <div class="posts">${R.posts.map((p, i) => `<a class="post" href="${esc(p.url)}" target="_blank" rel="noopener">
+      <span class="rk">${i + 1}</span><span class="pt">${esc(p.title)}
+      <span class="pm">↑ ${k(p.score)} · ${k(p.comments)} comments · r/${esc(p.sub)} · ${ago(p.created)}</span></span>
+      <span class="tone ${p.label}">${p.label}</span></a>`).join('')}</div>
+    <p class="note">Tone is scored automatically (VADER sentiment model) from each post's title and opening text, so treat it as a rough read, not a fact.</p>
+  </div>`;
+}
+
 /* ================================================================ NEWS */
 let newsLang = 'All';
 function newsDays(stories, limitDays, perDay) {
@@ -221,11 +246,12 @@ function newsDays(stories, limitDays, perDay) {
 }
 async function renderNews(view) {
   if (!S.news) { view.innerHTML = '<div class="loading">Fetching the latest headlines…</div>';
-                 [S.news, S.candles] = await Promise.all([getJSON('news.json'), getJSON('candles.json')]); }
+                 [S.news, S.candles, S.social] = await Promise.all([getJSON('news.json'), getJSON('candles.json'),
+                                                                    getJSON('social.json').catch(() => null)]); }
   const all = S.news.stories;
   const shown = newsLang === 'All' ? all : all.filter(s => s.lang === (newsLang === 'English' ? 'en' : 'id'));
   const updated = new Date(S.news.generated).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
-  view.innerHTML = section('01', 'The downgrade, day by day', `Updated ${updated} WIB · ${all.length} stories`) + marketPanel() + `
+  view.innerHTML = section('01', 'The downgrade, day by day', `Updated ${updated} WIB · ${all.length} stories`) + marketPanel() + socialPanel() + `
     <div class="panel">
       <div class="label" style="margin-bottom:0">Latest headlines</div>
       <div>${newsDays(shown, 3, 4)}</div>
