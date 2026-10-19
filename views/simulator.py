@@ -65,8 +65,10 @@ with panel("scenario"):
             passive_aum_bn = st.number_input("$ billions", 0, 20000, D["passive_aum_bn"], step=50,
                                              help="In billions of US dollars. 1,000 = $1 trillion.")
             assumption("A2", "Indonesia's share of the index",
-                       "Of every $100 in an EM fund, about this much is in Indonesian stocks.")
-            indonesia_weight = st.number_input("%", 0.0, 10.0, D["indonesia_weight"], step=0.1, label_visibility="collapsed")
+                       "Of every $100 in an EM fund, about this much is in Indonesian stocks. "
+                       "In reality it has been roughly 1–3%; try other values to stress-test.")
+            indonesia_weight = st.number_input("%", 0.0, 100.0, D["indonesia_weight"], step=0.1, format="%.1f",
+                                               label_visibility="collapsed")
             assumption("A3", "Share of funds that actually sell",
                        "100% means every tracker exits. Lower it if some funds keep holdings or have flexible mandates.")
             pct_sell = st.slider("pct_sell", 0, 100, D["pct_sell"], format="%d%%", label_visibility="collapsed")
