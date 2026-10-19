@@ -57,7 +57,10 @@ def load_many(tickers, start="2026-01-01"):
                               group_by="ticker", threads=True)
         for t in tickers:
             if isinstance(raw.columns, pd.MultiIndex) and t in raw.columns.get_level_values(0):
-                df = raw[t].dropna(how="all")
+                # A batch download shares one calendar across tickers, so days when only
+                # some markets traded (e.g. FX on an IDX holiday) appear as empty rows.
+                # Drop rows without a close, or "latest close" would come back blank.
+                df = raw[t].dropna(subset=["Close"])
                 if not df.empty and "Close" in df:
                     df.to_csv(DATA_DIR / f"{t.replace('^', '').replace('=', '_')}.csv")
                     out[t] = df

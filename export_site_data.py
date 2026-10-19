@@ -142,6 +142,17 @@ write("argentina.json", {
     },
 })
 
+# --- candlestick history: EIDO (how global investors see Indonesia) + JCI -------------
+def ohlc(df):
+    df = df.dropna(subset=["Open", "High", "Low", "Close"])
+    return {"d": [d.strftime("%Y-%m-%d") for d in df.index],
+            "o": [num(v, 3) for v in df["Open"]], "h": [num(v, 3) for v in df["High"]],
+            "l": [num(v, 3) for v in df["Low"]], "c": [num(v, 3) for v in df["Close"]]}
+
+
+hist = data.load_many(("EIDO", config.INDEX_TICKER), start="2025-04-01")
+write("candles.json", {"eido": ohlc(hist["EIDO"]), "jci": ohlc(hist[config.INDEX_TICKER])})
+
 # --- settings the page needs (dates, defaults, scenarios, author) --------------------------
 write("config.json", {
     "announcement": config.ANNOUNCEMENT_DATE,

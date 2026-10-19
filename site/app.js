@@ -74,7 +74,10 @@ function plot(el, traces, layout) {             // Plotly loads in the backgroun
   Plotly.react(el, traces, Object.assign({
     margin: { l: 0, r: 0, t: 10, b: 0 }, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
     font: { family: FONT, color: GREY, size: 10 }, showlegend: false,
-  }, layout), { displayModeBar: false, responsive: true });
+    hoverlabel: { bgcolor: '#0b0b0b', bordercolor: '#2a2a2a', font: { family: FONT, color: WHITE, size: 11 } },
+  }, layout, {
+    xaxis: Object.assign({ showspikes: false }, layout.xaxis || {}),   // no thick hover line; the dark tooltip is enough
+  }), { displayModeBar: false, responsive: true });
 }
 
 /* sliders: red filled track + value bubble that follows the handle */
@@ -135,6 +138,66 @@ function renderHome(view) {
   tick();
 }
 
+/* ================================================================ MARKET CHECK (candlesticks) */
+const mk = { asset: 'eido', freq: 'Weekly' };
+const ASSETS = { eido: { name: 'EIDO · USD', long: 'iShares MSCI Indonesia ETF, in US dollars: how global investors see Indonesia', px: v => '$' + v.toFixed(2) },
+                 jci: { name: 'JCI · IDR', long: 'Jakarta Composite Index, in rupiah: the local market', px: v => fmt(v, 0) } };
+
+function weekly(s) {                       // daily candles -> weekly (Mon–Fri) candles
+  const out = { d: [], o: [], h: [], l: [], c: [] };
+  s.d.forEach((d, i) => {
+    const dt = new Date(d + 'T00:00:00'), monday = new Date(dt); monday.setDate(dt.getDate() - ((dt.getDay() + 6) % 7));
+    const key = monday.toISOString().slice(0, 10), n = out.d.length - 1;
+    if (n < 0 || out.d[n] !== key) { out.d.push(key); out.o.push(s.o[i]); out.h.push(s.h[i]); out.l.push(s.l[i]); out.c.push(s.c[i]); }
+    else { out.h[n] = Math.max(out.h[n], s.h[i]); out.l[n] = Math.min(out.l[n], s.l[i]); out.c[n] = s.c[i]; }
+  });
+  return out;
+}
+
+function marketPanel() {
+  return `<div class="panel">
+    <div class="mk-head">
+      <div><div class="label" style="margin-bottom:6px">Market check</div><div class="note" id="mkLong" style="margin:0"></div></div>
+      <div class="mk-ctl"><div class="seg" id="mkAsset">${Object.entries(ASSETS).map(([k, a]) => `<button data-k="${k}" class="${k === mk.asset ? 'on' : ''}">${a.name}</button>`).join('')}</div>
+        <div class="seg" id="mkFreq">${['Daily', 'Weekly'].map(f => `<button class="${f === mk.freq ? 'on' : ''}">${f}</button>`).join('')}</div></div>
+    </div>
+    <div class="metrics" style="--cols:4" id="mkStats"></div>
+    <div id="mkChart" class="candles"></div>
+  </div>`;
+}
+
+function marketDraw() {
+  const s = S.candles[mk.asset], A = ASSETS[mk.asset], n = s.c.length - 1;
+  const pct = (a, b) => isNum(a) && isNum(b) && b ? (a / b - 1) * 100 : null;
+  const i15 = s.d.findIndex(d => d >= S.cfg.announcement) - 1;            // last close before the proposal
+  const stat = (k, v, cls = '') => `<div class="metric"><div class="k">${k}</div><div class="v ${cls}">${v}</div></div>`;
+  const tone = v => isNum(v) ? (v < 0 ? 'neg' : 'pos') : '';
+  const dod = pct(s.c[n], s.c[n - 1]), wow = pct(s.c[n], s.c[n - 5]), since = i15 >= 0 ? pct(s.c[n], s.c[i15]) : null;
+  $('#mkLong').textContent = A.long + ' · last close ' + new Date(s.d[n] + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  $('#mkStats').innerHTML = stat('Last close', A.px(s.c[n])) + stat('Day over day', fmtPct(dod), tone(dod)) +
+                            stat('Week over week', fmtPct(wow), tone(wow)) + stat('Since 15 Oct', fmtPct(since), tone(since));
+  const c = mk.freq === 'Weekly' ? weekly(s) : s;
+  plot($('#mkChart'), [{
+    type: 'candlestick', x: c.d, open: c.o, high: c.h, low: c.l, close: c.c,
+    increasing: { line: { color: WHITE, width: 1 }, fillcolor: WHITE }, decreasing: { line: { color: RED, width: 1 }, fillcolor: RED },
+    hoverlabel: { bgcolor: '#0b0b0b' }, whiskerwidth: 0,
+  }], {
+    margin: { l: 0, r: 0, t: 10, b: 0 }, hovermode: 'x',
+    xaxis: { showgrid: false, linecolor: RULE, rangeslider: { visible: false }, type: 'date' },
+    yaxis: { showgrid: true, gridcolor: '#141414', side: 'right', zeroline: false, tickprefix: mk.asset === 'eido' ? '$' : '' },
+    shapes: [{ type: 'line', x0: S.cfg.announcement, x1: S.cfg.announcement, yref: 'paper', y0: 0, y1: 1, line: { color: RED, width: 1, dash: 'dot' } }],
+    annotations: [{ x: S.cfg.announcement, y: 1, yref: 'paper', text: 'MSCI PROPOSAL', showarrow: false, xanchor: 'right', yanchor: 'top', font: { color: RED, size: 9 } }],
+  });
+}
+
+function marketWire(view) {
+  $$('#mkAsset button', view).forEach(b => b.addEventListener('click', () => {
+    mk.asset = b.dataset.k; $$('#mkAsset button', view).forEach(x => x.classList.toggle('on', x === b)); marketDraw(); }));
+  $$('#mkFreq button', view).forEach(b => b.addEventListener('click', () => {
+    mk.freq = b.textContent; $$('#mkFreq button', view).forEach(x => x.classList.toggle('on', x === b)); marketDraw(); }));
+  marketDraw();
+}
+
 /* ================================================================ NEWS */
 let newsLang = 'All';
 function newsDays(stories, limitDays, perDay) {
@@ -155,11 +218,12 @@ function newsDays(stories, limitDays, perDay) {
   }).join('');
 }
 async function renderNews(view) {
-  if (!S.news) { view.innerHTML = '<div class="loading">Fetching the latest headlines…</div>'; S.news = await getJSON('news.json'); }
+  if (!S.news) { view.innerHTML = '<div class="loading">Fetching the latest headlines…</div>';
+                 [S.news, S.candles] = await Promise.all([getJSON('news.json'), getJSON('candles.json')]); }
   const all = S.news.stories;
   const shown = newsLang === 'All' ? all : all.filter(s => s.lang === (newsLang === 'English' ? 'en' : 'id'));
   const updated = new Date(S.news.generated).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
-  view.innerHTML = section('01', 'The downgrade, day by day', `Updated ${updated} WIB · ${all.length} stories`) + `
+  view.innerHTML = section('01', 'The downgrade, day by day', `Updated ${updated} WIB · ${all.length} stories`) + marketPanel() + `
     <div class="panel">
       <div class="seg" id="lang">${['All', 'English', 'Bahasa'].map(l => `<button class="${l === newsLang ? 'on' : ''}">${l}</button>`).join('')}</div>
       <div style="margin-top:12px">${newsDays(shown, 3, 4)}</div>
@@ -167,6 +231,7 @@ async function renderNews(view) {
       <p class="note">Headlines and links via Google News. Tags are keyword-based.</p>
     </div>` + navArrow('#/simulator', 'Simulate the sell-off');
   $$('#lang button', view).forEach(b => b.addEventListener('click', () => { newsLang = b.textContent; renderNews(view); }));
+  marketWire(view);
 }
 
 /* ================================================================ SIMULATOR */
@@ -193,7 +258,7 @@ function simCompute() {
   const cOut = I.aum * 1e9 * (I.weight / 100) * (I.sell / 100) * factor;   // country outflow
   const rows = S.market.stocks.map(st => {
     const out = st.weight ? cOut * st.weight : null;                       // stock's share of it
-    const days = out && st.adv ? out / (st.adv * I.part / 100) : null;      // days of forced selling
+    const days = out === 0 ? 0 : out && st.adv ? out / (st.adv * I.part / 100) : null;   // days of forced selling
     const pressure = out != null && st.adv ? (out / I.days) / st.adv * 100 : null;
     return { ...st, out, days, pressure };
   });
@@ -257,7 +322,13 @@ function renderSimulator(view) {
   </div>
 
   <div class="panel" id="stockPanel">
-    <select class="pick" id="pick">${S.market.stocks.map(s => `<option value="${s.code}">${s.code}  ${esc(s.name)}</option>`).join('')}</select>
+    <div class="dd" id="pick">
+      <button class="dd-btn" type="button" aria-haspopup="listbox"><span id="pickLbl"></span></button>
+      <div class="dd-pop" role="listbox">
+        <input class="dd-q" type="text" placeholder="Search ticker or company…" aria-label="Search stocks">
+        <div class="dd-list">${S.market.stocks.map(s => `<div class="dd-opt" data-code="${s.code}"><b>${s.code}</b> ${esc(s.name)}</div>`).join('')}</div>
+      </div>
+    </div>
     <div id="stock"></div>
   </div>
 
@@ -298,7 +369,21 @@ function renderSimulator(view) {
   $$('.rng', view).forEach(r => paintSlider(r));
   $('#prev').addEventListener('click', () => { sim.page--; simTable(); });
   $('#next').addEventListener('click', () => { sim.page++; simTable(); });
-  $('#pick').addEventListener('change', e => { sim.pick = e.target.value; simTable(); simStock(); });
+  // custom dark dropdown (the system one clashes with the design)
+  const dd = $('#pick'), q = $('.dd-q', dd);
+  const closeDD = () => dd.classList.remove('open');
+  $('.dd-btn', dd).addEventListener('click', () => {
+    dd.classList.toggle('open');
+    if (dd.classList.contains('open')) { q.value = ''; filterDD(''); q.focus(); $('.dd-opt.on', dd)?.scrollIntoView({ block: 'nearest' }); }
+  });
+  const filterDD = s => $$('.dd-opt', dd).forEach(o => { o.style.display = o.textContent.toLowerCase().includes(s.toLowerCase()) ? '' : 'none'; });
+  q.addEventListener('input', () => filterDD(q.value));
+  q.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeDD();
+    if (e.key === 'Enter') { const first = $$('.dd-opt', dd).find(o => o.style.display !== 'none'); if (first) first.click(); }
+  });
+  $$('.dd-opt', dd).forEach(o => o.addEventListener('click', () => { sim.pick = o.dataset.code; closeDD(); simTable(); simStock(); }));
+  document.addEventListener('click', e => { if (!dd.contains(e.target)) closeDD(); });
   simUpdate();
 }
 
@@ -329,7 +414,7 @@ function simTable() {
       ${cell(r.pb, fmt(r.pb, 1))}${cell(r.pe, fmt(r.pe, 1))}${cell(r.since, fmtPct(r.since))}
       <td class="flag">${!r.eligible ? 'Not in index' : r.oversold ? 'OVERSOLD?' : ''}</td></tr>`).join('');
   $$('#tbody tr').forEach(tr => tr.addEventListener('click', () => {
-    sim.pick = tr.dataset.code; $('#pick').value = sim.pick; simTable(); simStock();
+    sim.pick = tr.dataset.code; simTable(); simStock();
     $('#stockPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }));
   $('#prev').disabled = sim.page === 0;
@@ -340,8 +425,9 @@ function simTable() {
 
 function simStock() {
   const r = simState.rows.find(x => x.code === sim.pick), I = sim.inputs;
-  $('#pick').value = sim.pick;
-  const sentence = isNum(r.days) ? `<p class="note">Funds would need to sell ${fmtUSD(r.out)} of ${r.code}. About ${fmtUSD(r.adv)} of it trades on a normal day, ` +
+  $('#pickLbl').innerHTML = `<b>${r.code}</b> ${esc(r.name)}`;
+  $$('#pick .dd-opt').forEach(o => o.classList.toggle('on', o.dataset.code === r.code));
+  const sentence = isNum(r.days) && r.out > 0 ? `<p class="note">Funds would need to sell ${fmtUSD(r.out)} of ${r.code}. About ${fmtUSD(r.adv)} of it trades on a normal day, ` +
     `and sellers can be ${I.part}% of that, so the exit takes about <b>${fmt(r.days, 0)} trading days</b>.</p>` : '';
   $('#stock').innerHTML = `<div class="co inline">${companyHTML(r.code, false)}</div>
     <div class="metrics" style="--cols:4">
