@@ -66,6 +66,12 @@ MIN_ADV_USD = 100_000
 # "Mechanically oversold" flag: more days of forced selling than the median
 # stock in our universe AND a lower price-to-book than the median.
 
+# Top 40 IDX stocks by market cap (yfinance, 18 Oct 2026), for the home-page
+# ticker columns. Prices refresh daily; re-rank occasionally if needed.
+TOP40 = """BBCA DCII BBRI BYAN BMRI AMMN BREN TLKM ASII SMMA BRPT DSSA BBNI TPIA CASA UNTR PANI AADI
+ICBP HMSP ADRO ANTM CUAN MDKA BNLI INDF ISAT UNVR BRIS BUMI MEGA NCKL AMRT BDMN CPIN MBMA INKP
+BNGA BELI INCO""".split()
+
 INDEX_TICKER = "^JKSE"   # Jakarta Composite Index
 FX_TICKER = "IDR=X"      # rupiah per 1 USD
 ETF_TICKER = "EIDO"      # iShares MSCI Indonesia ETF

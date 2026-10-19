@@ -75,6 +75,23 @@ def apply_style():
         [class*="st-key-panel-"] .sw-step:first-child, [class*="st-key-panel-"] .sw-stat:first-child {{ padding-left: 0; }}
         @media (max-width: 640px) {{ [class*="st-key-panel-"] {{ padding: 1.2rem 1.1rem 1.4rem !important; }} }}
 
+        /* assumptions dropdown: red so visitors know they can play with it */
+        .st-key-assume [data-testid="stExpander"] details {{
+            border: 1px solid {RED} !important; border-radius: 8px !important;
+            background: rgba(225, 6, 0, .06);
+        }}
+        .st-key-assume [data-testid="stExpander"] summary p,
+        .st-key-assume [data-testid="stExpander"] summary svg {{ color: {RED} !important; fill: {RED}; }}
+        .st-key-assume [data-testid="stExpander"] summary p {{ font-size: .78rem !important; }}
+        .st-key-assume [data-testid="stExpander"] details:not([open]) {{ animation: sw-pulse 2.6s ease-in-out infinite; }}
+        @keyframes sw-pulse {{
+            0%, 100% {{ box-shadow: 0 0 0 0 rgba(225, 6, 0, 0); }}
+            50% {{ box-shadow: 0 0 0 5px rgba(225, 6, 0, .18); }}
+        }}
+
+        iframe[height="0"] {{ display: none; }}
+        .element-container:has(iframe[height="0"]) {{ display: none; }}
+
         /* every slider: room for the floating value above the handle */
         [data-testid="stSlider"] {{ padding-top: 1.8rem; }}
 
@@ -162,9 +179,23 @@ def section(number, title, meta="", anchor=""):
     )
 
 
-def hero(jci_change, fx_last):
-    """Full-screen opening: just the countdown. Rendered as HTML/JS so it
-    ticks every second without re-running Python."""
+def _tape_column(rows, direction):
+    """One vertical ticker column. The list is doubled so the scroll loops seamlessly."""
+    items = "".join(
+        f'<div class="t"><span class="c">{code}</span><span class="p">{close:,.0f}</span>'
+        f'<span class="x {"dn" if chg < 0 else "up"}">{"▼" if chg < 0 else "▲"} {abs(chg):.1f}%</span></div>'
+        for code, close, chg in rows)
+    return f'<div class="tape {direction}"><div class="roll">{items}{items}</div></div>'
+
+
+def hero(jci_change, fx_last, tape=None, tape_date=None):
+    """Full-screen opening: the countdown, flanked by two slowly scrolling
+    columns of the top 40 stocks' last close (left scrolls up, right down).
+    Rendered as HTML/JS so it ticks every second without re-running Python."""
+    tape = tape or []
+    half = (len(tape) + 1) // 2
+    tapes = (_tape_column(tape[:half], "up") + _tape_column(tape[half:], "dn")) if tape else ""
+    tape_note = (f'<br>Top 40 IDX stocks &nbsp;·&nbsp; last close {tape_date}' if tape and tape_date else "")
     decision_ms = int(config.DECISION_DATE.timestamp() * 1000)
     close_ms = int(config.CONSULTATION_CLOSE.timestamp() * 1000)
     status = "confirmed" if config.DECISION_CONFIRMED else "expected"
@@ -191,8 +222,28 @@ def hero(jci_change, fx_last):
                font-family:{FONT}; animation:b 2.4s ease-in-out infinite; transition:border-color .2s; }}
       .down:hover {{ border-color:{RED}; color:{RED}; }}
       @keyframes b {{ 50% {{ transform:translateY(6px); opacity:.5; }} }}
+
+      /* ticker columns at the screen edges */
+      .tape {{ position:absolute; top:0; bottom:0; width:200px; overflow:hidden;
+               -webkit-mask-image:linear-gradient(transparent, #000 18%, #000 82%, transparent);
+                       mask-image:linear-gradient(transparent, #000 18%, #000 82%, transparent); }}
+      .tape.up {{ left:4vw; }}  .tape.dn {{ right:4vw; }}
+      .roll {{ display:flex; flex-direction:column; }}
+      .tape.up .roll {{ animation:up 70s linear infinite; }}
+      .tape.dn .roll {{ animation:dn 70s linear infinite; }}
+      .tape:hover .roll {{ animation-play-state:paused; }}
+      @keyframes up {{ from {{ transform:translateY(0); }} to {{ transform:translateY(-50%); }} }}
+      @keyframes dn {{ from {{ transform:translateY(-50%); }} to {{ transform:translateY(0); }} }}
+      .t {{ display:grid; grid-template-columns:52px 1fr 70px; gap:8px; padding:11px 0;
+            border-bottom:1px solid #111; font-size:12px; font-variant-numeric:tabular-nums; }}
+      .t .c {{ color:{WHITE}; letter-spacing:.06em; }}
+      .t .p {{ color:{GREY}; text-align:right; }}
+      .t .x {{ text-align:right; }}
+      .t .x.dn {{ color:{RED}; }}  .t .x.up {{ color:{WHITE}; }}
+      @media (max-width: 1000px) {{ .tape {{ display:none; }} }}
     </style>
     <div class="wrap">
+      {tapes}
       <div class="lbl">MSCI decision on Indonesia &nbsp;·&nbsp; <span class="red">{status}</span>
         {config.DECISION_DATE:%d %b %Y}</div>
       <div class="clock">
@@ -203,7 +254,7 @@ def hero(jci_change, fx_last):
       </div>
       <div class="sub">
         Consultation closes in <span id="c">—</span> days<br>
-        JCI <span class="red">{jci}</span> &nbsp;·&nbsp; USD/IDR <span>{fx}</span> &nbsp; since proposal
+        JCI <span class="red">{jci}</span> &nbsp;·&nbsp; USD/IDR <span>{fx}</span> &nbsp; since proposal{tape_note}
       </div>
       <button class="down" id="down" title="Latest news">↓</button>
     </div>
@@ -331,3 +382,40 @@ def fmt_usd(x):
 
 def fmt_pct(x):
     return "—" if x is None else f"{x:+.1f}%"
+
+
+def header_timer():
+    """Small live countdown placed at the right end of the top tab bar.
+    The component's own frame is invisible; its script writes into the page header."""
+    decision_ms = int(config.DECISION_DATE.timestamp() * 1000)
+    status = "" if config.DECISION_CONFIRMED else "EXPECTED "
+    components.html(f"""
+    <script>
+      const doc = window.parent.document;
+      const header = doc.querySelector('header[data-testid="stHeader"]');
+      let el = doc.getElementById('sw-mini-timer');
+      if (!el && header) {{
+        el = doc.createElement('div');
+        el.id = 'sw-mini-timer';
+        el.style.cssText = "position:absolute; right:24px; top:50%; transform:translateY(-50%); z-index:1000;" +
+          "font-family:{FONT}; font-size:12px; letter-spacing:.08em; color:{GREY}; white-space:nowrap;" +
+          "font-variant-numeric:tabular-nums; pointer-events:none;";
+        header.appendChild(el);
+      }}
+      const p = n => String(n).padStart(2, '0');
+      function tick() {{
+        const ms = Math.max(0, {decision_ms} - Date.now());
+        const d = Math.floor(ms / 864e5), h = Math.floor(ms % 864e5 / 36e5),
+              m = Math.floor(ms % 36e5 / 6e4), s = Math.floor(ms % 6e4 / 1e3);
+        if (el) el.innerHTML = '<span style="font-size:10px;letter-spacing:.18em">{status}MSCI DECISION IN</span>&nbsp;&nbsp;' +
+          '<span style="color:{WHITE}">' + d + 'D ' + p(h) + ':' + p(m) + ':</span><span style="color:{RED}">' + p(s) + '</span>';
+      }}
+      tick(); setInterval(tick, 1000);
+    </script>""", height=0)
+
+
+def remove_header_timer():
+    """The home tab shows the big countdown, so drop the small one if it's there."""
+    components.html("""<script>
+      const el = window.parent.document.getElementById('sw-mini-timer'); if (el) el.remove();
+    </script>""", height=0)

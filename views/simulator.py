@@ -36,7 +36,7 @@ with panel("scenario"):
     # --- assumptions: each one a slider plus a plain-English line ----------------
     D = config.DEFAULTS
     st.write("")
-    with st.expander("Your assumptions · click to change"):
+    with st.container(key="assume"), st.expander("Change the assumptions · drag the sliders and watch the numbers move"):
         a, b = st.columns(2, gap="large")
         with a:
             assumption("A1", "Passive money tracking MSCI EM",

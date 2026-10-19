@@ -112,3 +112,20 @@ def event_window(close, day0, before=60, after=250):
     out = window / close.iloc[pos] * 100
     out.index = range(max(0, pos - before) - pos, max(0, pos - before) - pos + len(out))
     return out
+
+
+@st.cache_data(ttl=6 * 60 * 60, show_spinner=False)  # closing prices only change once a day
+def last_closes(codes):
+    """Latest close and day % change for a list of IDX codes (one batch download).
+    Returns [(code, close, pct_change), ...] in the order given; skips failures."""
+    tickers = [c + ".JK" for c in codes]
+    try:
+        df = yf.download(tickers, period="10d", progress=False, auto_adjust=False)["Close"]
+    except Exception:
+        return []
+    out = []
+    for code, t in zip(codes, tickers):
+        s = df[t].dropna() if t in df else pd.Series(dtype=float)
+        if len(s) >= 2:
+            out.append((code, float(s.iloc[-1]), float(s.iloc[-1] / s.iloc[-2] * 100 - 100)))
+    return out
