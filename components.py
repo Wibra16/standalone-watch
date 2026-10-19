@@ -291,12 +291,14 @@ def hero(jci_change, fx_last, tape=None, tape_date=None):
       .k:last-child {{ margin-right:0; }}
       .red {{ color:{RED}; }}
       .cap {{ font-size:11px; letter-spacing:.2em; color:{GREY}; text-transform:uppercase; }}
-      .mkt {{ position:absolute; bottom:104px; font-size:11px; letter-spacing:.08em; color:#3f3f3f; }}
+      .mkt {{ position:absolute; bottom:134px; font-size:11px; letter-spacing:.08em; color:#3f3f3f; }}
       .mkt span {{ color:{GREY}; }}
-      .down {{ position:absolute; bottom:36px; background:none; border:1px solid {RULE}; color:{WHITE};
+      .golbl {{ position:absolute; bottom:100px; color:{RED}; font-size:11px; letter-spacing:.22em; text-transform:uppercase; }}
+      .down {{ position:absolute; bottom:36px; background:none; border:1px solid {RED}; color:{RED};
                width:52px; height:52px; border-radius:50%; font-size:20px; cursor:pointer;
                font-family:{FONT}; animation:b 2.4s ease-in-out infinite; transition:border-color .2s; }}
-      .down:hover {{ border-color:{RED}; color:{RED}; }}
+      .down:hover {{ background:{RED}; color:{BLACK}; }}
+      .wrap {{ padding-bottom:16vh; }}
       @keyframes b {{ 50% {{ transform:translateY(6px); opacity:.5; }} }}
 
       /* ticker columns at the screen edges */
@@ -337,7 +339,9 @@ def hero(jci_change, fx_last, tape=None, tape_date=None):
       @media (max-width: 1000px) {{
         .tape-h {{ display:block; }}
         .cap {{ letter-spacing:.12em; font-size:10px; line-height:1.8; padding:0 16px; }}
-        .mkt {{ font-size:10px; bottom:96px; }}
+        .mkt {{ font-size:10px; bottom:126px; }}
+        .golbl {{ font-size:10px; letter-spacing:.14em; bottom:98px; }}
+        .wrap {{ padding-bottom:0; }}
       }}
       .t {{ cursor:pointer; transition:background .15s; }}
       .t:hover {{ background:#0e0e0e; }}
@@ -372,6 +376,7 @@ def hero(jci_change, fx_last, tape=None, tape_date=None):
       </div>
       <div class="cap">until MSCI decides &nbsp;·&nbsp; {status} {config.DECISION_DATE:%d %b %Y}</div>
       <div class="mkt">JCI <span class="red">{jci}</span> &nbsp;&nbsp; USD/IDR <span>{fx}</span> &nbsp;&nbsp; since 15 Oct</div>
+      <div class="golbl">See what's going on in Indonesia</div>
       <button class="down" id="down" title="Latest news">↓</button>
       <div class="card-bg" id="cardbg">
         <div class="card">

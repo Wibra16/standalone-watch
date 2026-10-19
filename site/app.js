@@ -131,8 +131,10 @@ function renderHome(view) {
         <span class="v red" id="cs">—</span><span class="k">s</span>
       </div>
       <div class="cap">until MSCI decides &nbsp;·&nbsp; ${status} ${dec}</div>
-      <div class="mkt">JCI <span class="red">${fmtPct(m.jci_change)}</span> &nbsp;&nbsp; USD/IDR <span>${fmt(m.fx_last, 0)}</span> &nbsp;&nbsp; since 15 Oct</div>
-      <a class="down" href="#/news" title="Latest news">↓</a>
+      <div class="bottom">
+        <div class="mkt">JCI <span class="red">${fmtPct(m.jci_change)}</span> &nbsp;&nbsp; USD/IDR <span>${fmt(m.fx_last, 0)}</span> &nbsp;&nbsp; since 15 Oct</div>
+        <a class="go" href="#/news"><span class="lbl">See what's going on in Indonesia</span><span class="down">↓</span></a>
+      </div>
     </section>`;
   $$('.tk, .th', view).forEach(el => el.addEventListener('click', () => openCard(el.dataset.code)));
   tick();
@@ -572,6 +574,11 @@ async function route() {
     $('#view').innerHTML = `<div class="loading">Couldn't load data (${esc(e.message)}).</div>`; return;
   }
   tick(); setInterval(tick, 1000);
+  const items = S.market.tape.map(t => `<span class="th" data-code="${t.code}"><b>${t.code}</b> ${Math.round(t.close).toLocaleString('en-US')} ` +
+    `<span class="${t.chg < 0 ? 'dn-c' : 'up-c'}">${t.chg < 0 ? '▼' : '▲'}${Math.abs(t.chg).toFixed(1)}%</span></span>`).join('');
+  $('#strip').innerHTML = `<div class="rollh">${items}${items}</div>`;
+  $('#strip').style.setProperty('--dur', Math.max(90, S.market.tape.length * 2.2) + 's');
+  $$('#strip .th').forEach(el => el.addEventListener('click', () => openCard(el.dataset.code)));
   window.addEventListener('hashchange', route);
   route();
 })();
