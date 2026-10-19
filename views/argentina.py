@@ -81,15 +81,21 @@ with panel("timeline"):
 
 with panel("chart"):
     # --- the chart: event study ----------------------------------------------------
-    st.markdown('<div class="sw-label" style="margin-bottom:.8rem">How the market moved · day 0 = announcement = 100</div>',
+    st.markdown('<div class="sw-label" style="margin-bottom:.6rem">How the market moved, before vs after the announcement</div>',
                 unsafe_allow_html=True)
-    lo, hi = st.slider("Trading days around the announcement", -60, 250, (-30, 120), label_visibility="collapsed")
+    st.markdown(
+        '<p class="sw-note" style="font-size:.74rem !important">Two different years on one clock. Each line counts '
+        'trading days from <b style="color:#F5F5F5;font-weight:400">its own country\'s announcement</b> '
+        '(Argentina: 24 Jun 2021 · Indonesia: 15 Oct 2026), and every line is rescaled so that day equals 100. '
+        'Left of 0 is the run-up; right of 0 is what happened after. Below 100 means lower than on announcement day.</p>',
+        unsafe_allow_html=True)
+    lo, hi = st.slider("Show days before ↔ after the announcement", -60, 250, (-30, 120))
 
     series = {
-        "ARGT (Argentina ETF, USD)": (data.event_window(argt["Close"], AR_DAY0, 60, 250), WHITE, 1.6, None),
-        "Merval in USD": (data.event_window(merv_usd, AR_DAY0, 60, 250), GREY, 1.1, None),
-        "YPF (ADR)": (data.event_window(ypf["Close"], AR_DAY0, 60, 250), GREY, 1.1, "dot"),
-        "Indonesia JCI, 2026": (data.event_window(jci["Close"], config.ANNOUNCEMENT_DATE, 60, 250), RED, 2.2, None),
+        "Argentina ETF (ARGT) · day 0 = 24 Jun 2021": (data.event_window(argt["Close"], AR_DAY0, 60, 250), WHITE, 1.6, None),
+        "Merval in USD · 2021": (data.event_window(merv_usd, AR_DAY0, 60, 250), GREY, 1.1, None),
+        "YPF (ADR) · 2021": (data.event_window(ypf["Close"], AR_DAY0, 60, 250), GREY, 1.1, "dot"),
+        "Indonesia JCI · day 0 = 15 Oct 2026": (data.event_window(jci["Close"], config.ANNOUNCEMENT_DATE, 60, 250), RED, 2.2, None),
     }
     eff_day = len(argt["Close"].loc[AR_DAY0:AR_EFFECTIVE]) - 1  # trading days from announcement to effective
 
@@ -101,23 +107,31 @@ with panel("chart"):
                                  hovertemplate=f"{name}<br>day %{{x}}: %{{y:.1f}}<extra></extra>"))
     fig.add_hline(y=100, line=dict(color=RULE, width=1))
     fig.add_vline(x=0, line=dict(color=GREY, width=1, dash="dot"))
+    # shade the run-up and label both sides so "before" vs "after" reads at a glance
+    if lo < 0:
+        fig.add_vrect(x0=lo, x1=0, fillcolor="rgba(255,255,255,0.025)", line_width=0, layer="below")
+        fig.add_annotation(x=0, y=0, yref="paper", text="← BEFORE ANNOUNCEMENT  ", showarrow=False,
+                           font=dict(color=GREY, size=9), xanchor="right", yanchor="bottom")
+    fig.add_annotation(x=0, y=0, yref="paper", text="  AFTER ANNOUNCEMENT →", showarrow=False,
+                       font=dict(color=GREY, size=9), xanchor="left", yanchor="bottom")
     if lo <= eff_day <= hi:
         fig.add_vline(x=eff_day, line=dict(color=GREY, width=1, dash="dot"))
         fig.add_annotation(x=eff_day, y=1, yref="paper", text="EFFECTIVE", showarrow=False,
                            font=dict(color=GREY, size=9), xanchor="left", yanchor="top")
-    fig.add_annotation(x=0, y=1, yref="paper", text="ANNOUNCED", showarrow=False,
+    fig.add_annotation(x=0, y=1, yref="paper", text="DAY 0 · ANNOUNCED", showarrow=False,
                        font=dict(color=GREY, size=9), xanchor="left", yanchor="top")
     fig.update_layout(
-        height=380, margin=dict(l=0, r=0, t=10, b=0), plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+        height=420, margin=dict(l=0, r=0, t=10, b=0), plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
         font=dict(family=FONT, color=GREY, size=10), hovermode="x unified",
-        legend=dict(orientation="h", y=-0.15, x=0, font=dict(size=10)),
-        xaxis=dict(showgrid=False, linecolor=RULE, title=None, zeroline=False),
+        legend=dict(orientation="h", y=-0.22, x=0, font=dict(size=10)),
+        xaxis=dict(showgrid=False, linecolor=RULE, zeroline=False,
+                   title=dict(text="trading days from each country's announcement", font=dict(size=10, color=GREY))),
         yaxis=dict(showgrid=False, side="right", zeroline=False),
     )
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
     # one-line comparison at the same point in time
-    jci_s, argt_s = series["Indonesia JCI, 2026"][0], series["ARGT (Argentina ETF, USD)"][0]
+    jci_s, argt_s = series["Indonesia JCI · day 0 = 15 Oct 2026"][0], series["Argentina ETF (ARGT) · day 0 = 24 Jun 2021"][0]
     if not jci_s.empty and jci_s.index.max() > 0:
         n = jci_s.index.max()
         gap = jci_s.loc[n] - argt_s.loc[n]
