@@ -152,7 +152,7 @@ function renderHome(view) {
       <div class="cap">until MSCI decides &nbsp;·&nbsp; ${status} ${dec}</div>
       <div class="bottom">
         <div class="mkt">JCI <span class="red">${fmtPct(m.jci_change)}</span> since MSCI's downgrade warning on 15 Oct &nbsp;·&nbsp; USD/IDR <span>${fmt(m.fx_last, 0)}</span></div>
-        <a class="go" href="#/news"><span class="lbl">See what's going on in Indonesia</span><span class="down">↓</span></a>
+        <a class="go" href="#/news"><span class="lbl">See what's going on in Indonesia</span><span class="down">→</span></a>
       </div>
     </section>`;
   $$('.tk, .th', view).forEach(el => el.addEventListener('click', () => openCard(el.dataset.code)));
