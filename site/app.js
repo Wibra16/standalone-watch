@@ -374,7 +374,7 @@ function socialPanel() {
       <p class="note" style="margin:0">Top Reddit posts about Indonesia's markets will appear here once the Reddit connection is set up.</p></div>`;
   }
   const k = n => n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n);
-  const ago = t => { const h = Math.max(1, Math.round((Date.now() / 1000 - t) / 3600)); return h < 48 ? h + 'h ago' : Math.round(h / 24) + 'd ago'; };
+  const ago = t => { const h = Math.max(1, Math.round((Date.now() / 1000 - t) / 3600)); return h < 24 ? h + 'h ago' : Math.max(1, Math.floor(h / 24)) + 'd ago'; };
   const moodWord = m => m >= 0.15 ? 'leaning positive' : m <= -0.15 ? 'leaning negative' : 'mixed';
   const sp = R.split, total = Math.max(1, sp.positive + sp.neutral + sp.negative), pc = n => (n / total * 100).toFixed(0) + '%';
   return `<div class="panel">

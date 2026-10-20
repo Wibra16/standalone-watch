@@ -12,6 +12,7 @@ Tone uses VADER, a standard rule-based sentiment model for short social text:
 compound score from -1 (very negative) to +1 (very positive).
 """
 import os
+import calendar
 import re
 import time
 from pathlib import Path
@@ -78,7 +79,7 @@ def _search(token, window):
 
 def _search_rss(window):
     """Keyless fallback: Reddit's public RSS search (sorted by top, no vote counts)."""
-    posts, rank = {}, 0
+    posts, rank, seen = {}, 0, set()
     for q in QUERIES:
         for attempt in range(3):
             r = requests.get("https://www.reddit.com/search.rss", headers={"User-Agent": USER_AGENT}, timeout=15,
@@ -88,20 +89,27 @@ def _search_rss(window):
             time.sleep(10 * (attempt + 1))
         if r.status_code == 200:
             for e in feedparser.parse(r.text).entries:
-                body = re.sub(r"<[^>]+>", " ", e.get("summary", ""))
-                text = f'{e.title} {body[:400]}'
-                if e.link in posts or "/comments/" not in e.link or not TOPIC.search(text):
+                # Title must be on-topic: a passing mention deep in the body (e.g. an S&P 500
+                # thread) isn't a post "about Indonesia's markets".
+                if e.link in posts or "/comments/" not in e.link or not TOPIC.search(e.title):
                     continue
-                score, label = tone(e.title)
                 sub = e.link.split("/r/")[1].split("/")[0]
+                key = re.sub(r"^\[[^\]]*\]\s*-\s*|\W+", "", e.title.lower())   # "[World] - X" == "X"
+                if re.search(r"auto$|^autonewspaper$", sub, re.I) or key in seen:  # news-bot reposts, duplicates
+                    continue
+                seen.add(key)
+                score, label = tone(e.title)
                 posts[e.link] = {
                     "title": e.title, "sub": sub, "score": None, "comments": None, "url": e.link,
-                    "created": int(time.mktime(e.updated_parsed)) if e.get("updated_parsed") else None,
+                    "created": calendar.timegm(stamp) if (stamp := e.get("published_parsed") or e.get("updated_parsed")) else None,
                     "tone": score, "label": label, "rank": rank,
                 }
                 rank += 1
         time.sleep(3)
-    return sorted(posts.values(), key=lambda p: p["rank"])
+    # Reddit's "t=day" is loose, so enforce the window ourselves
+    cutoff = time.time() - {"day": 86400, "week": 7 * 86400}[window]
+    fresh = [p for p in posts.values() if p["created"] and p["created"] >= cutoff]
+    return sorted(fresh, key=lambda p: p["rank"])
 
 
 def fetch(top=5):
@@ -110,7 +118,7 @@ def fetch(top=5):
     token = _token()
     search = (lambda w: _search(token, w)) if token else _search_rss
     window, posts = "day", search("day")
-    if len(posts) < top:
+    if len(posts) < 3:            # fewer than 3 fresh posts: widen to the week
         window, posts = "week", search("week")
     picked = posts[:top]
     every = posts[:25]
