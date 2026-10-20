@@ -430,7 +430,7 @@ table.stocks td.na { color: #3a3a3a; }
 .poll.revealed .bar { opacity: 1; }
 .poll .opt.lead .bar i { background: var(--red); }
 .poll .opt.mine { border-color: var(--red); background: linear-gradient(180deg, rgba(225, 6, 0, .10), #0b0b0b 70%); cursor: default; }
-.poll .opt.mine::after { content: "YOUR VOTE"; position: absolute; bottom: 14px; right: 18px; font-size: 9px; letter-spacing: .2em; color: var(--red); }
+.poll .opt.mine::after { content: "YOUR VOTE"; position: absolute; top: 48px; right: 18px; font-size: 9px; letter-spacing: .2em; color: var(--red); }
 .poll.closed .opt { cursor: default; opacity: .55; pointer-events: none; }
 @media (max-width: 720px) { .poll .opts { grid-template-columns: 1fr; } }
 
