@@ -48,7 +48,7 @@ function tick() {
 const section = (n, t, m = '') =>
   `<div class="section"><div><span class="n">${n}</span><span class="t">${t}</span></div><span class="m">${m}</span></div>`;
 const navArrow = (href, label, sym = '→') =>
-  `<div class="navarrow"><a href="${href}">${sym}</a><span>${label}</span></div>`;
+  `<div class="navarrow"><a class="go" href="${href}"><span class="lbl">${label}</span><span class="down">${sym}</span></a></div>`;
 function formula(label, parts, result) {
   const terms = parts.map(([v, c]) => `<span class="term"><span class="v">${v}</span><span class="c">${c}</span></span>`)
     .join('<span class="op">×</span>');
