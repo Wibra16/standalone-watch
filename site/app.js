@@ -61,7 +61,7 @@ function companyHTML(code, withPrice) {
   if (withPrice) {
     const t = S.market.tape.find(x => x.code === code);
     if (t && isNum(t.close)) px = `<div class="px">Last close IDR ${Math.round(t.close).toLocaleString('en-US')} &nbsp; ` +
-      `<span class="${t.chg < 0 ? 'dn-c' : 'up-c'}">${t.chg < 0 ? '▼' : '▲'} ${Math.abs(t.chg).toFixed(1)}%</span></div>`;
+      `<span class="${t.chg < 0 ? 'dn-c' : 'up-c'}"><i class="ar"></i>${Math.abs(t.chg).toFixed(1)}%</span></div>`;
   }
   const chips = (p.products || []).map(x => `<span class="chip">${esc(x)}</span>`).join('');
   return `<div class="code">${esc(code)} · IDX</div><div class="nm">${esc(p.name)}</div>${px}` +
@@ -128,12 +128,12 @@ function renderHome(view) {
   const col = (rows, dir) => {
     const items = rows.map(t => `<div class="tk" data-code="${t.code}"><span class="c">${t.code}</span>` +
       `<span class="p">${Math.round(t.close).toLocaleString('en-US')}</span>` +
-      `<span class="x ${t.chg < 0 ? 'dn-c' : 'up-c'}">${t.chg < 0 ? '▼' : '▲'} ${Math.abs(t.chg).toFixed(1)}%</span></div>`).join('');
+      `<span class="x ${t.chg < 0 ? 'dn-c' : 'up-c'}"><i class="ar"></i>${Math.abs(t.chg).toFixed(1)}%</span></div>`).join('');
     return `<div class="tape ${dir}"><div class="roll">${items}${items}</div></div>`;
   };
   const row = (rows, dir) => {
     const items = rows.map(t => `<span class="th" data-code="${t.code}"><b>${t.code}</b> <span class="p">${Math.round(t.close).toLocaleString('en-US')}</span> ` +
-      `<span class="x ${t.chg < 0 ? 'dn-c' : 'up-c'}">${t.chg < 0 ? '▼' : '▲'}${Math.abs(t.chg).toFixed(1)}%</span></span>`).join('');
+      `<span class="x ${t.chg < 0 ? 'dn-c' : 'up-c'}"><i class="ar"></i>${Math.abs(t.chg).toFixed(1)}%</span></span>`).join('');
     return `<div class="tape-h ${dir}"><div class="rollh">${items}${items}</div></div>`;
   };
   const dur = Math.max(70, Math.round(half * 3.5));       // same calm speed however many stocks
@@ -789,7 +789,7 @@ async function route() {
   }
   tick(); setInterval(tick, 1000);
   const items = S.market.tape.map(t => `<span class="th" data-code="${t.code}"><b>${t.code}</b> <span class="p">${Math.round(t.close).toLocaleString('en-US')}</span> ` +
-    `<span class="x ${t.chg < 0 ? 'dn-c' : 'up-c'}">${t.chg < 0 ? '▼' : '▲'}${Math.abs(t.chg).toFixed(1)}%</span></span>`).join('');
+    `<span class="x ${t.chg < 0 ? 'dn-c' : 'up-c'}"><i class="ar"></i>${Math.abs(t.chg).toFixed(1)}%</span></span>`).join('');
   $('#strip').innerHTML = `<div class="rollh">${items}${items}</div>`;
   $('#strip').style.setProperty('--dur', Math.max(90, S.market.tape.length * 2.2) + 's');
   $$('#strip .th').forEach(el => el.addEventListener('click', () => openCard(el.dataset.code)));

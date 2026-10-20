@@ -37,7 +37,7 @@
   }
 
   const fmtPx = p => Math.round(p).toLocaleString('en-US');
-  const arrow = c => `${c < 0 ? '▼' : '▲'}${Math.abs(c).toFixed(1)}%`;
+  const arrow = c => `<i class="ar"></i>${Math.abs(c).toFixed(1)}%`;
 
   function paint(code, q, flash) {
     document.querySelectorAll(`[data-code="${code}"]`).forEach(el => {
@@ -46,7 +46,7 @@
       const prev = parseFloat(p.textContent.replace(/,/g, ''));
       p.textContent = fmtPx(q.price);
       if (x && Number.isFinite(q.chg)) {
-        x.textContent = (el.classList.contains('tk') ? arrow(q.chg).replace(/^(.)/, '$1 ') : arrow(q.chg));
+        x.innerHTML = arrow(q.chg);
         x.className = 'x ' + (q.chg < 0 ? 'dn-c' : 'up-c');
       }
       if (flash && Number.isFinite(prev) && Math.round(prev) !== Math.round(q.price)) {
