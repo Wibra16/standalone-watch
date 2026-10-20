@@ -324,6 +324,7 @@ function marketPanel() {
 }
 
 function marketDraw() {
+  if (!$("#mkChart") || !S.candles) return;     // a live tick can land after the user has left News
   const s = S.candles[mk.asset], A = ASSETS[mk.asset], n = s.c.length - 1;
   const pct = (a, b) => isNum(a) && isNum(b) && b ? (a / b - 1) * 100 : null;
   const i15 = s.d.findIndex(d => d >= S.cfg.announcement) - 1;            // last close before the proposal

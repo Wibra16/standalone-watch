@@ -578,3 +578,12 @@ body[data-tab="news"] .photos { margin-bottom: 40px; }
 .seg button.on { color: var(--white); background: rgba(255, 255, 255, .09); border-color: rgba(245, 245, 245, .45); }
 /* Secondary News cards: a faint fill so they read as deliberate, still lighter than Market check */
 body[data-tab="news"] .panel:not(.primary) { background: #080808; border-color: #1a1a1a; }
+
+/* Poll: the card you voted for reads as chosen, not faded, and stays aligned with the others */
+.poll .opt.mine, .poll .opt.mine:hover, .poll .opt.mine:active { transform: none; }
+.poll .opt.mine .heat { color: var(--white); }
+.poll .opt.mine[data-k="standalone"] .heat { color: var(--red); }
+.poll.revealed .opt:not(.mine) .nm { color: var(--soft); }
+
+/* nav: thin divider between the market-status badge and the countdown */
+.live + #mini { border-left: 1px solid #2a2a2a; padding-left: 14px; }
