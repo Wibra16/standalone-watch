@@ -13,8 +13,10 @@ const crypto = require('crypto');
 
 const CHOICES = ['stay', 'frontier', 'standalone'];
 const POLL = 'poll:msci-2027';
-const URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-const TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+// Vercel may prefix these (e.g. STORAGE_KV_REST_API_URL), so match on the ending.
+const env = suffixes => { for (const sfx of suffixes) { const k = Object.keys(process.env).find(k => k.endsWith(sfx) && process.env[k]); if (k) return process.env[k]; } };
+const URL = env(['KV_REST_API_URL', 'UPSTASH_REDIS_REST_URL', 'REDIS_REST_URL']);
+const TOKEN = env(['KV_REST_API_TOKEN', 'UPSTASH_REDIS_REST_TOKEN', 'REDIS_REST_TOKEN']);
 
 async function redis(commands) {                 // one round trip for several commands
   const r = await fetch(`${URL}/pipeline`, {
