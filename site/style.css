@@ -587,3 +587,13 @@ body[data-tab="news"] .panel:not(.primary) { background: #080808; border-color: 
 
 /* nav: thin divider between the market-status badge and the countdown */
 .live + #mini { border-left: 1px solid #2a2a2a; padding-left: 14px; }
+
+/* Poll after voting: only your pick is white; everything else steps back to grey */
+.poll.revealed .opt:not(.mine) .heat { color: var(--grey); }
+.poll.revealed .opt:not(.mine)[data-k="standalone"] .heat { color: rgba(225, 6, 0, .55); }
+.poll.revealed .opt:not(.mine) .pc { color: var(--soft); }
+.poll .opt.lead .bar i { background: #6a6a6a; }
+.poll .opt:not(.mine) .bar i { background: #4a4a4a; }
+.poll .opt.lead:not(.mine) .bar i { background: #8a8a8a; }
+.poll .opt.mine .bar i { background: var(--white); }
+.poll .opt.mine .pc, .poll .opt.mine .nm { color: var(--white); }
