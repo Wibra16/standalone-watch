@@ -573,3 +573,8 @@ body[data-tab="news"] .photos { margin-bottom: 40px; }
   body[data-tab="news"] .panel { margin-bottom: 28px; }
   body[data-tab="news"] .panel.primary { padding: 24px 18px 26px; }
 }
+
+/* Quieter selected toggles: clearly "on", but the data stays the brightest thing */
+.seg button.on { color: var(--white); background: rgba(255, 255, 255, .09); border-color: rgba(245, 245, 245, .45); }
+/* Secondary News cards: a faint fill so they read as deliberate, still lighter than Market check */
+body[data-tab="news"] .panel:not(.primary) { background: #080808; border-color: #1a1a1a; }
