@@ -87,7 +87,7 @@ ADV_WINDOW = 20  # days used for average daily traded value
 # ---------------------------------------------------------------------------
 # Author (shown in the footer)
 # ---------------------------------------------------------------------------
-AUTHOR = "Shakti Widjonarko"
+AUTHOR = "Wibra"
 AUTHOR_EMAIL = "shakti.widjo@gmail.com"
 COPYRIGHT_YEAR = 2026
 
