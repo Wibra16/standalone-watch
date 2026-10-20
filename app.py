@@ -1,5 +1,5 @@
 """
-app.py — IDX Downgrade.
+app.py — IDXDown.
 Five tabs along the top: Home (countdown) · News · Simulator · Argentina · About.
 Run with:  streamlit run app.py
 """
@@ -7,7 +7,7 @@ import streamlit as st
 
 from components import apply_style, header_timer, remove_header_timer
 
-st.set_page_config(page_title="IDX Downgrade", page_icon="▼", layout="centered",
+st.set_page_config(page_title="IDXDown", page_icon="▼", layout="centered",
                    initial_sidebar_state="collapsed")
 apply_style()
 

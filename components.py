@@ -590,7 +590,7 @@ def about_block():
         <div><span class="k">Created by</span> {config.AUTHOR}</div>
         <div><span class="k">Contact</span> <a href="mailto:{config.AUTHOR_EMAIL}">{config.AUTHOR_EMAIL}</a></div>
       </div>
-      <p><b>Not investment advice.</b> IDX Downgrade is an independent educational project. All figures are
+      <p><b>Not investment advice.</b> IDXDown is an independent educational project. All figures are
       illustrative estimates built on stated assumptions and free public data, which may be delayed, incomplete or
       wrong. Nothing here is a recommendation to buy or sell any security. Do your own research and consult a licensed
       adviser before making investment decisions.</p>
