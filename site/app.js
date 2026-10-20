@@ -246,6 +246,68 @@ function weekly(s) {                       // daily candles -> weekly (Mon–Fri
   return out;
 }
 
+/* ---------------------------------------------------------------- "Are we cooked?" poll (api/vote.js) */
+const POLL = [
+  ['stay', 'Stays Emerging', 'Not cooked', 'MSCI backs off and Indonesia keeps its EM seat'],
+  ['frontier', 'Cut to Frontier', 'Medium rare', 'A downgrade, but to Frontier, where some funds can still hold it'],
+  ['standalone', 'Standalone', 'Fully cooked', 'The full downgrade: index funds sell, like Argentina in 2021'],
+];
+const store = { get: k => { try { return localStorage.getItem(k); } catch { return null; } },
+                set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
+function voterId() {
+  let id = store.get('voter');
+  if (!id) { id = (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36)); store.set('voter', id); }
+  return id;
+}
+function pollPanel() {
+  return `<div class="panel poll" id="poll">
+    <div class="mk-head"><div><div class="label ptitle" style="margin-bottom:6px">Are we cooked?</div>
+      <div class="note" style="margin:0">Your call: what will MSCI decide in June 2027? Vote, then see what everyone else thinks.</div></div>
+      <div class="pmeta" id="pollMeta"></div></div>
+    <div class="opts" id="pollOpts">${POLL.map(([k, name, heat, why]) => `
+      <button class="opt" data-k="${k}"><span class="heat">${heat}</span><span class="nm">${name}</span><span class="why">${why}</span>
+        <span class="bar"><i></i></span><span class="pc"></span></button>`).join('')}</div>
+    <p class="note" id="pollNote" style="margin-bottom:0">One vote per browser; you can change it any time. Not a forecast, just the crowd's mood.</p>
+  </div>`;
+}
+function pollShow(data, mine) {
+  const box = $('#poll'); if (!box) return;
+  const reveal = !!mine && data && data.total > 0;
+  box.classList.toggle('revealed', reveal);
+  $('#pollMeta').innerHTML = reveal ? `<b>${data.total.toLocaleString('en-US')}</b> vote${data.total === 1 ? '' : 's'}` : '';
+  const top = reveal ? Math.max(...POLL.map(([k]) => data.counts[k])) : 0;
+  $$('#pollOpts .opt').forEach(b => {
+    const k = b.dataset.k, n = reveal ? data.counts[k] : 0, pct = reveal ? Math.round(n / data.total * 100) : 0;
+    b.classList.toggle('mine', k === mine);
+    b.classList.toggle('lead', reveal && n === top && n > 0);
+    b.querySelector('.bar i').style.width = pct + '%';
+    b.querySelector('.pc').textContent = reveal ? pct + '%' : '';
+  });
+}
+async function pollWire() {
+  const mine = store.get('myvote');
+  const fail = msg => { const n = $('#pollNote'); if (n) n.textContent = msg; };
+  let data = null;
+  try {
+    const r = await fetch('/api/vote', { cache: 'no-store' });
+    if (r.status === 503 || r.status === 404) { $('#poll')?.classList.add('closed'); return fail('Voting opens soon.'); }
+    data = await r.json();
+  } catch { return fail('Voting is unavailable right now.'); }
+  pollShow(data, mine);
+  $$('#pollOpts .opt').forEach(b => b.addEventListener('click', async () => {
+    if (b.classList.contains('mine')) return;
+    $$('#pollOpts .opt').forEach(x => x.disabled = true);
+    try {
+      const r = await fetch('/api/vote', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                           body: JSON.stringify({ choice: b.dataset.k, voter: voterId() }) });
+      const res = await r.json();
+      if (!r.ok) fail(res.error || 'Could not save your vote.');
+      else { store.set('myvote', b.dataset.k); pollShow(res, b.dataset.k); }
+    } catch { fail('Could not save your vote. Try again.'); }
+    $$('#pollOpts .opt').forEach(x => x.disabled = false);
+  }));
+}
+
 function marketPanel() {
   return `<div class="panel">
     <div class="mk-head">
@@ -352,7 +414,7 @@ async function renderNews(view) {
   const shown = newsLang === 'All' ? all : all.filter(s => s.lang === (newsLang === 'English' ? 'en' : 'id'));
   const updated = new Date(S.news.generated).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
   view.innerHTML = section('01', 'The downgrade, day by day', `Updated ${updated} WIB · ${all.length} stories`) +
-    marketPanel() + socialPanel() + `
+    marketPanel() + pollPanel() + socialPanel() + `
     <div class="photos">
       <figure class="photo"><img src="img/idx.jpg" alt="Indonesia Stock Exchange building, Jakarta" loading="lazy">
         <figcaption><span>The Indonesia Stock Exchange.</span><small>Bursa Efek Indonesia · CC BY-SA 4.0</small></figcaption></figure>
@@ -365,7 +427,7 @@ async function renderNews(view) {
       <details class="drop"><summary>More stories</summary>${newsDays(shown, 120)}</details>
       <p class="note">Headlines and links via Google News. Tags are keyword-based.</p>
     </div>` + navArrow('#/simulator', 'Simulate the sell-off');
-  marketWire(view);
+  marketWire(view); pollWire();
 }
 
 /* ================================================================ SIMULATOR */

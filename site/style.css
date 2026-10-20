@@ -414,3 +414,26 @@ table.stocks td.na { color: #3a3a3a; }
 /* Candles / Line switch above the stock chart */
 .chart-ctl { display: flex; justify-content: flex-end; margin: 18px 0 4px; gap: 8px; flex-wrap: wrap; }
 .mk-ctl { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* "Are we cooked?" poll */
+.poll .pmeta { font-size: 11px; color: var(--grey); letter-spacing: .1em; text-transform: uppercase; }
+.poll .pmeta b { color: var(--white); font-weight: 400; font-size: 14px; }
+.poll .opts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 18px 0 14px; }
+.poll .opt { position: relative; text-align: left; display: flex; flex-direction: column; gap: 6px; padding: 18px 18px 16px;
+  background: #0b0b0b; border: 1px solid #222; border-radius: 12px; color: var(--white); font: inherit; cursor: pointer;
+  transition: border-color .25s, transform .25s, background .25s; overflow: hidden; }
+.poll .opt:hover { border-color: rgba(225, 6, 0, .6); transform: translateY(-2px); }
+.poll .opt:disabled { opacity: .6; cursor: wait; }
+.poll .heat { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--red); }
+.poll .opt[data-k="stay"] .heat { color: var(--white); }
+.poll .nm { font-size: 16px; }
+.poll .why { font-size: 11px; color: var(--grey); line-height: 1.55; }
+.poll .bar { display: block; height: 4px; background: #1a1a1a; border-radius: 4px; margin-top: 10px; overflow: hidden; opacity: 0; transition: opacity .3s; }
+.poll .bar i { display: block; height: 100%; width: 0; background: #555; border-radius: 4px; transition: width .9s cubic-bezier(.2, .8, .2, 1); }
+.poll .pc { position: absolute; top: 16px; right: 18px; font-size: 22px; font-variant-numeric: tabular-nums; }
+.poll.revealed .bar { opacity: 1; }
+.poll .opt.lead .bar i { background: var(--red); }
+.poll .opt.mine { border-color: var(--red); background: linear-gradient(180deg, rgba(225, 6, 0, .10), #0b0b0b 70%); cursor: default; }
+.poll .opt.mine::after { content: "YOUR VOTE"; position: absolute; bottom: 14px; right: 18px; font-size: 9px; letter-spacing: .2em; color: var(--red); }
+.poll.closed .opt { cursor: default; opacity: .55; pointer-events: none; }
+@media (max-width: 720px) { .poll .opts { grid-template-columns: 1fr; } }
