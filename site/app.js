@@ -345,6 +345,11 @@ function marketDraw() {
   });
 }
 
+function weeklyLine(s) {                       // weekly closes for stocks with no OHLC history
+  const w = weekly({ d: s.d, o: s.c, h: s.c, l: s.c, c: s.c });
+  return { d: w.d, c: w.c };
+}
+
 function axis4h(keys) {                       // 4H: one slot per session, no overnight/weekend gaps
   const step = Math.max(1, Math.round(keys.length / 7));
   const vals = keys.filter((k, i) => i % step === 0);
@@ -631,7 +636,7 @@ function simStock() {
       <div class="metric"><div class="k">Days of forced selling</div><div class="v">${isNum(r.days) ? fmt(r.days, 0) : '—'}</div></div>
       <div class="metric" title="Selling it all in ${I.days} days (A6), compared with a normal day's trading"><div class="k">× normal volume</div><div class="v">${isNum(r.pressure) ? fmt(r.pressure / 100, 1) + '×' : '—'}</div></div>
       <div class="metric"><div class="k">Since 15 Oct</div><div class="v">${fmtPct(r.since)}</div></div>
-    </div>${sentence}<div class="chart-ctl"><div class="seg" id="stFreq">${['4H', 'Daily'].map(f => `<button class="${f === sim.freq ? 'on' : ''}">${f}</button>`).join('')}</div>${typeSeg('stType')}</div><div class="chart" id="stockChart"></div><p class="zhint"><b>Zoom:</b> click and drag across the chart (on a phone, drag with one finger) &nbsp;·&nbsp; <b>Zoom out:</b> double-click (double-tap on a phone)</p>`;
+    </div>${sentence}<div class="chart-ctl"><div class="seg" id="stFreq">${['4H', 'Daily', 'Weekly'].map(f => `<button class="${f === sim.freq ? 'on' : ''}">${f}</button>`).join('')}</div>${typeSeg('stType')}</div><div class="chart" id="stockChart"></div><p class="zhint"><b>Zoom:</b> click and drag across the chart (on a phone, drag with one finger) &nbsp;·&nbsp; <b>Zoom out:</b> double-click (double-tap on a phone)</p>`;
   wireType('stType', stockChart);
   $$('#stFreq button').forEach(b => b.addEventListener('click', () => {
     sim.freq = b.textContent; $$('#stFreq button').forEach(x => x.classList.toggle('on', x === b)); stockChart(); }));
@@ -643,11 +648,12 @@ function stockChart() {
   if (!r || !$('#stockChart')) return;
   const h4 = sim.freq === '4H';
   if (h4 && !S.intra) { loadIntra().then(stockChart).catch(() => {}); return; }
-  const s = h4 ? S.intra.stocks[r.code] : { d: r.dates, o: r.open, h: r.high, l: r.low, c: r.close };
+  const day = { d: r.dates, o: r.open, h: r.high, l: r.low, c: r.close }, wk = sim.freq === 'Weekly';
+  const s = h4 ? S.intra.stocks[r.code] : wk && r.open ? weekly(day) : wk ? weeklyLine(day) : day;
   if (!s || !s.d.length) { $('#stockChart').innerHTML = '<p class="note">No 4-hour data for this stock.</p>'; return; }
   const mark = s.d.find(d => d >= S.cfg.announcement);
   const shape = { type: 'line', x0: mark, x1: mark, yref: 'paper', y0: 0, y1: 1, line: { color: RED, width: 1, dash: 'dot' } };
-  plot($('#stockChart'), [priceTrace(s)], { margin: { l: 0, r: 56, t: 10, b: 28 }, hovermode: 'x', uirevision: r.code + sim.freq, shapes: mark ? [shape] : [],
+  plot($('#stockChart'), [priceTrace(s, '', wk)], { margin: { l: 0, r: 56, t: 10, b: 28 }, hovermode: 'x', uirevision: r.code + sim.freq, shapes: mark ? [shape] : [],
        xaxis: h4 ? axis4h(s.d) : { showgrid: false, linecolor: RULE, type: 'date', tickformat: '%b %y', nticks: 8, rangeslider: { visible: false } },
        yaxis: { showgrid: true, gridcolor: '#141414', side: 'right', zeroline: false, tickformat: ',.0f', nticks: 6 } });
 }
