@@ -763,7 +763,7 @@ function renderAbout(view) {
   view.innerHTML = section('04', 'About', 'IDXDown') + `
   <div class="panel"><p class="lede">IDXDown follows MSCI's proposal to move Indonesia from Emerging Markets to <b>Standalone</b> status. It counts down to the decision, tracks the news day by day, estimates how much stock index funds would be forced to sell, and compares it all with Argentina, the last country MSCI made Standalone.</p></div>
   <div class="panel about">
-    <div class="top"><div><span class="k">Created by</span>${esc(C.author)}</div>
+    <div class="top">
       <div><span class="k">Contact</span><a href="mailto:${esc(C.email)}">${esc(C.email)}</a></div></div>
     <p><b>Not investment advice.</b> IDXDown is an independent educational project. All figures are illustrative estimates built on stated assumptions and free public data, which may be delayed, incomplete or wrong. Nothing here is a recommendation to buy or sell any security. Do your own research and consult a licensed adviser before making investment decisions.</p>
     <p><b>No affiliation.</b> This site is not affiliated with, endorsed by or sponsored by MSCI Inc., the Indonesia Stock Exchange (IDX), OJK, or any company mentioned. MSCI and other names are trademarks of their respective owners and are used only to describe public events.</p>

@@ -587,7 +587,6 @@ def about_block():
     st.markdown(f"""
     <div class="sw-footer">
       <div class="top">
-        <div><span class="k">Created by</span> {config.AUTHOR}</div>
         <div><span class="k">Contact</span> <a href="mailto:{config.AUTHOR_EMAIL}">{config.AUTHOR_EMAIL}</a></div>
       </div>
       <p><b>Not investment advice.</b> IDXDown is an independent educational project. All figures are
