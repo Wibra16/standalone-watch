@@ -398,3 +398,7 @@ table.stocks td.na { color: #3a3a3a; }
 @keyframes upf { from { background: rgba(255,255,255,.18); } to { background: transparent; } }
 @keyframes dnf { from { background: rgba(225,6,0,.28); } to { background: transparent; } }
 @media (max-width: 720px) { .live { margin-right: 8px; letter-spacing: .1em; } }
+
+/* Candles / Line switch above the stock chart */
+.chart-ctl { display: flex; justify-content: flex-end; margin: 18px 0 4px; }
+.mk-ctl { display: flex; flex-wrap: wrap; gap: 8px; }

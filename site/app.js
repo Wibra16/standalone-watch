@@ -47,7 +47,7 @@ function tick() {
 /* ---------------------------------------------------------------- shared pieces */
 const section = (n, t, m = '') =>
   `<div class="section"><div><span class="n">${n}</span><span class="t">${t}</span></div><span class="m">${m}</span></div>`;
-const navArrow = (href, label, sym = '↓') =>
+const navArrow = (href, label, sym = '→') =>
   `<div class="navarrow"><a href="${href}">${sym}</a><span>${label}</span></div>`;
 function formula(label, parts, result) {
   const terms = parts.map(([v, c]) => `<span class="term"><span class="v">${v}</span><span class="c">${c}</span></span>`)
@@ -161,6 +161,52 @@ function renderHome(view) {
 
 /* ================================================================ MARKET CHECK (candlesticks) */
 const mk = { asset: 'eido', freq: 'Weekly' };
+const view = { type: (() => { try { return localStorage.getItem('chartType') || 'candles'; } catch { return 'candles'; } })() };
+const typeSeg = id => `<div class="seg" id="${id}">${['Candles', 'Line'].map(t =>
+  `<button data-t="${t.toLowerCase()}" class="${view.type === t.toLowerCase() ? 'on' : ''}">${t}</button>`).join('')}</div>`;
+function wireType(id, redraw) {                // Candles / Line switch, remembered across pages and visits
+  $$(`#${id} button`).forEach(b => b.addEventListener('click', () => {
+    view.type = b.dataset.t; try { localStorage.setItem('chartType', view.type); } catch {}
+    $$(`#${id} button`).forEach(x => x.classList.toggle('on', x === b)); redraw(); }));
+}
+function priceTrace(s, pre = '', week = false) {   // s = {d, o, h, l, c}
+  const text = candleText(s.d, s.o, s.h, s.l, s.c, pre, week);
+  if (view.type === 'line' || !s.o)
+    return { x: s.d, y: s.c, mode: 'lines', line: { color: WHITE, width: 1.4 }, text, hoverinfo: 'text' };
+  return { type: 'candlestick', x: s.d, open: s.o, high: s.h, low: s.l, close: s.c, text, hoverinfo: 'text', whiskerwidth: 0,
+    increasing: { line: { color: WHITE, width: 1 }, fillcolor: WHITE }, decreasing: { line: { color: RED, width: 1 }, fillcolor: RED } };
+}
+
+/* live chart updates: fold each streamed quote (live.js) into today's bar.
+   Yahoo's stream has no day open/high/low, so a new day opens at the previous
+   close and its high/low widen with every price we see. */
+function applyLive(s, q, tz) {
+  const today = new Date(q.time || Date.now()).toLocaleDateString('en-CA', { timeZone: tz }), n = s.d.length - 1;
+  if (n < 0 || today < s.d[n]) return;
+  if (s.d[n] === today) { s.h[n] = Math.max(s.h[n], q.price); s.l[n] = Math.min(s.l[n], q.price); s.c[n] = q.price; }
+  else {
+    const prev = isNum(q.change) ? q.price - q.change : s.c[n];
+    s.d.push(today); s.o.push(prev); s.h.push(Math.max(prev, q.price)); s.l.push(Math.min(prev, q.price)); s.c.push(q.price);
+  }
+  s.live = today;
+}
+const liveTimers = {};
+const soon = (k, f) => { if (!liveTimers[k]) liveTimers[k] = setTimeout(() => { liveTimers[k] = 0; f(); }, 1500); };
+const INDEX_FEED = { EIDO: ['eido', 'America/New_York'], '^JKSE': ['jci', 'Asia/Jakarta'] };
+window.onLive = (code, q) => {
+  const idx = INDEX_FEED[code];
+  if (idx && S.candles) {
+    applyLive(S.candles[idx[0]], q, idx[1]);
+    if (idx[0] === mk.asset && $('#mkChart')) soon('mk', marketDraw);
+    return;
+  }
+  const st = S.market && S.market.stocks.find(x => x.code === code);
+  if (st && st.open && st.dates.length) {
+    applyLive({ get d() { return st.dates; }, get o() { return st.open; }, get h() { return st.high; }, get l() { return st.low; }, get c() { return st.close; },
+                set live(v) { st.live = v; } }, q, 'Asia/Jakarta');
+    if (code === sim.pick && $('#stockChart')) soon('st', stockChart);
+  }
+};
 const ASSETS = { eido: { name: 'EIDO · USD', long: 'iShares MSCI Indonesia ETF, in US dollars: how global investors see Indonesia', px: v => '$' + v.toFixed(2) },
                  jci: { name: 'JCI · IDR', long: 'Jakarta Composite Index, in rupiah: the local market', px: v => fmt(v, 0) } };
 
@@ -180,7 +226,8 @@ function marketPanel() {
     <div class="mk-head">
       <div><div class="label ptitle" style="margin-bottom:6px">Market check</div><div class="note" id="mkLong" style="margin:0"></div></div>
       <div class="mk-ctl"><div class="seg" id="mkAsset">${Object.entries(ASSETS).map(([k, a]) => `<button data-k="${k}" class="${k === mk.asset ? 'on' : ''}">${a.name}</button>`).join('')}</div>
-        <div class="seg" id="mkFreq">${['Daily', 'Weekly'].map(f => `<button class="${f === mk.freq ? 'on' : ''}">${f}</button>`).join('')}</div></div>
+        <div class="seg" id="mkFreq">${['Daily', 'Weekly'].map(f => `<button class="${f === mk.freq ? 'on' : ''}">${f}</button>`).join('')}</div>
+        ${typeSeg('mkType')}</div>
     </div>
     <div class="metrics" style="--cols:4" id="mkStats"></div>
     <div id="mkChart" class="candles"></div>
@@ -195,17 +242,13 @@ function marketDraw() {
   const stat = (k, v, cls = '') => `<div class="metric"><div class="k">${k}</div><div class="v ${cls}">${v}</div></div>`;
   const tone = v => isNum(v) ? (v < 0 ? 'neg' : 'pos') : '';
   const dod = pct(s.c[n], s.c[n - 1]), wow = pct(s.c[n], s.c[n - 5]), since = i15 >= 0 ? pct(s.c[n], s.c[i15]) : null;
-  $('#mkLong').textContent = A.long + ' · last close ' + new Date(s.d[n] + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-  $('#mkStats').innerHTML = stat('Last close', A.px(s.c[n])) + stat('Day over day', fmtPct(dod), tone(dod)) +
+  const isLive = s.live === s.d[n];
+  $('#mkLong').textContent = A.long + (isLive ? ' · live today' : ' · last close ' + new Date(s.d[n] + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }));
+  $('#mkStats').innerHTML = stat(isLive ? 'Live price' : 'Last close', A.px(s.c[n])) + stat('Day over day', fmtPct(dod), tone(dod)) +
                             stat('Week over week', fmtPct(wow), tone(wow)) + stat('Since 15 Oct', fmtPct(since), tone(since));
   const c = mk.freq === 'Weekly' ? weekly(s) : s;
-  plot($('#mkChart'), [{
-    type: 'candlestick', x: c.d, open: c.o, high: c.h, low: c.l, close: c.c,
-    text: candleText(c.d, c.o, c.h, c.l, c.c, mk.asset === 'eido' ? '$' : '', mk.freq === 'Weekly'), hoverinfo: 'text',
-    increasing: { line: { color: WHITE, width: 1 }, fillcolor: WHITE }, decreasing: { line: { color: RED, width: 1 }, fillcolor: RED },
-    hoverlabel: { bgcolor: '#0b0b0b' }, whiskerwidth: 0,
-  }], {
-    margin: { l: 0, r: 0, t: 10, b: 0 }, hovermode: 'x',
+  plot($('#mkChart'), [priceTrace(c, mk.asset === 'eido' ? '$' : '', mk.freq === 'Weekly')], {
+    margin: { l: 0, r: 0, t: 10, b: 0 }, hovermode: 'x', uirevision: mk.asset + mk.freq,   // live redraws keep the user's zoom
     xaxis: { showgrid: false, linecolor: RULE, rangeslider: { visible: false }, type: 'date' },
     yaxis: { showgrid: true, gridcolor: '#141414', side: 'right', zeroline: false, tickprefix: mk.asset === 'eido' ? '$' : '' },
     shapes: [{ type: 'line', x0: S.cfg.announcement, x1: S.cfg.announcement, yref: 'paper', y0: 0, y1: 1, line: { color: RED, width: 1, dash: 'dot' } }],
@@ -218,6 +261,7 @@ function marketWire(view) {
     mk.asset = b.dataset.k; $$('#mkAsset button', view).forEach(x => x.classList.toggle('on', x === b)); marketDraw(); }));
   $$('#mkFreq button', view).forEach(b => b.addEventListener('click', () => {
     mk.freq = b.textContent; $$('#mkFreq button', view).forEach(x => x.classList.toggle('on', x === b)); marketDraw(); }));
+  wireType('mkType', marketDraw);
   marketDraw();
 }
 
@@ -268,7 +312,8 @@ function newsDays(stories, limitDays, perDay) {
 async function renderNews(view) {
   if (!S.news) { view.innerHTML = '<div class="loading">Fetching the latest headlines…</div>';
                  [S.news, S.candles, S.social] = await Promise.all([getJSON('news.json'), getJSON('candles.json'),
-                                                                    getJSON('social.json').catch(() => null)]); }
+                                                                    getJSON('social.json').catch(() => null)]);
+                 Object.keys(INDEX_FEED).forEach(k => window.liveLast && window.liveLast[k] && window.onLive(k, window.liveLast[k])); }
   const all = S.news.stories;
   const shown = newsLang === 'All' ? all : all.filter(s => s.lang === (newsLang === 'English' ? 'en' : 'id'));
   const updated = new Date(S.news.generated).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
@@ -490,15 +535,18 @@ function simStock() {
       <div class="metric"><div class="k">Days of forced selling</div><div class="v">${isNum(r.days) ? fmt(r.days, 0) : '—'}</div></div>
       <div class="metric" title="Selling it all in ${I.days} days (A6), compared with a normal day's trading"><div class="k">× normal volume</div><div class="v">${isNum(r.pressure) ? fmt(r.pressure / 100, 1) + '×' : '—'}</div></div>
       <div class="metric"><div class="k">Since 15 Oct</div><div class="v">${fmtPct(r.since)}</div></div>
-    </div>${sentence}<div class="chart" id="stockChart"></div><p class="zhint"><b>Zoom:</b> click and drag across the chart (on a phone, drag with one finger) &nbsp;·&nbsp; <b>Zoom out:</b> double-click (double-tap on a phone)</p>`;
+    </div>${sentence}<div class="chart-ctl">${typeSeg('stType')}</div><div class="chart" id="stockChart"></div><p class="zhint"><b>Zoom:</b> click and drag across the chart (on a phone, drag with one finger) &nbsp;·&nbsp; <b>Zoom out:</b> double-click (double-tap on a phone)</p>`;
+  wireType('stType', stockChart);
+  stockChart();
+}
+
+function stockChart() {
+  const r = S.market.stocks.find(x => x.code === sim.pick);
+  if (!r || !$('#stockChart')) return;
   const i0 = r.dates.findIndex(d => d >= S.cfg.announcement);
   const shape = { type: 'line', x0: S.cfg.announcement, x1: S.cfg.announcement, yref: 'paper', y0: 0, y1: 1, line: { color: RED, width: 1, dash: 'dot' } };
-  const trace = r.open ? {
-    type: 'candlestick', x: r.dates, open: r.open, high: r.high, low: r.low, close: r.close, whiskerwidth: 0,
-    text: candleText(r.dates, r.open, r.high, r.low, r.close), hoverinfo: 'text',
-    increasing: { line: { color: WHITE, width: 1 }, fillcolor: WHITE }, decreasing: { line: { color: RED, width: 1 }, fillcolor: RED },
-  } : { x: r.dates, y: r.close, mode: 'lines', line: { color: WHITE, width: 1.2 } };
-  plot($('#stockChart'), [trace], { margin: { l: 0, r: 56, t: 10, b: 28 }, hovermode: 'x', shapes: i0 >= 0 ? [shape] : [],
+  const trace = priceTrace({ d: r.dates, o: r.open, h: r.high, l: r.low, c: r.close });
+  plot($('#stockChart'), [trace], { margin: { l: 0, r: 56, t: 10, b: 28 }, hovermode: 'x', uirevision: r.code, shapes: i0 >= 0 ? [shape] : [],
        xaxis: { showgrid: false, linecolor: RULE, type: 'date', tickformat: '%b %y', nticks: 8, rangeslider: { visible: false } },
        yaxis: { showgrid: true, gridcolor: '#141414', side: 'right', zeroline: false, tickformat: ',.0f', nticks: 6 } });
 }
@@ -559,7 +607,7 @@ async function renderArgentina(view) {
     <div class="step"><div class="i">03</div><div class="h">Size changes everything</div><div class="b">Argentina was a rounding error in EM. Indonesia is roughly 1.5% of it, so the same rule moves far more money.</div></div>
   </div></div>
   <p class="note">Sources: MSCI 2021 Market Classification Review (announced 24 Jun 2021, effective Nov 2021 review); Bloomberg, Infobae and El Economista coverage of the market reaction; Schroders on Argentina's EM weight; prices from Yahoo Finance.</p>
-  ${navArrow('#/', 'Back to the countdown', '↑')}`;
+  ${navArrow('#/', 'Back to the countdown')}`;
   ['lo', 'hi'].forEach(id => $('#' + id).addEventListener('input', e => {
     ar[id] = parseInt(e.target.value, 10);
     paintSlider(e.target, (id === 'hi' ? '+' : '') + ar[id]);

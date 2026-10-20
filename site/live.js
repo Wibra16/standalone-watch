@@ -21,10 +21,10 @@
     const varint = () => { let r = 0, s = 0, b; do { b = buf[i++]; r += (b & 0x7f) * 2 ** s; s += 7; } while (b & 0x80); return r; };
     while (i < buf.length) {
       const key = varint(), field = Math.floor(key / 8), wire = key & 7;
-      if (wire === 0) varint();
+      if (wire === 0) { const v = varint(); if (field === 3) out.time = v / 2; }   // time: zigzag-encoded milliseconds
       else if (wire === 1) i += 8;
       else if (wire === 2) { const n = varint(); if (field === 1) out.id = new TextDecoder().decode(buf.subarray(i, i + n)); i += n; }
-      else if (wire === 5) { const v = view.getFloat32(i, true); if (field === 2) out.price = v; if (field === 8) out.chg = v; i += 4; }
+      else if (wire === 5) { const v = view.getFloat32(i, true); if (field === 2) out.price = v; if (field === 8) out.chg = v; if (field === 12) out.change = v; i += 4; }
       else break;                  // unknown wire type: stop rather than misread
     }
     return out;
@@ -71,7 +71,7 @@
     try { ws = new WebSocket(URL); } catch { return badge('off'); }
     ws.onopen = () => {
       retry = 1000;
-      ws.send(JSON.stringify({ subscribe: codes.map(c => c + '.JK') }));
+      ws.send(JSON.stringify({ subscribe: codes.map(c => c + '.JK').concat(['^JKSE', 'EIDO']) }));   // + index & ETF for the charts
       badge(idxOpen() ? 'on' : 'closed');
     };
     ws.onmessage = e => {
@@ -82,6 +82,7 @@
       const code = q.id.replace(/\.JK$/, '');
       last[code] = q;
       paint(code, q, true);
+      window.onLive && window.onLive(code, q);     // app.js folds it into today's chart bar
     };
     ws.onclose = () => {             // reconnect with backoff (max 30 s)
       badge('off');
@@ -93,5 +94,6 @@
   /* app.js calls this once the ticker list is known */
   window.startLive = list => { codes = list; connect(); setInterval(() => ws && ws.readyState === 1 && badge(idxOpen() ? 'on' : 'closed'), 60000); };
   /* and this after each page render, so freshly drawn tickers show live values */
+  window.liveLast = last;
   window.repaintLive = () => Object.entries(last).forEach(([c, q]) => paint(c, q, false));
 })();
