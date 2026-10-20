@@ -337,12 +337,10 @@ function marketDraw() {
   if (mk.freq === '4H' && !S.intra) { loadIntra().then(marketDraw).catch(() => {}); return; }
   const c = mk.freq === '4H' ? S.intra[mk.asset] : mk.freq === 'Weekly' ? weekly(s) : s;
   const h4 = mk.freq === '4H', mark = h4 ? c.d.find(d => d >= S.cfg.announcement) : S.cfg.announcement;
-  const vr = viewRange(c, mk.freq, h4);
   plot($('#mkChart'), [priceTrace(c, mk.asset === 'eido' ? '$' : '', mk.freq === 'Weekly')], {
     margin: { l: 0, r: 0, t: 10, b: 0 }, hovermode: 'x', uirevision: mk.asset + mk.freq,   // live redraws keep the user's zoom
-    xaxis: { ...(h4 ? axis4h(c.d) : { showgrid: false, linecolor: RULE, rangeslider: { visible: false }, type: 'date',
-             rangebreaks: mk.freq === 'Daily' ? [{ bounds: ['sat', 'mon'] }] : [] }), range: vr.x },   // daily: no weekend gaps
-    yaxis: { showgrid: true, gridcolor: '#141414', side: 'right', zeroline: false, tickprefix: mk.asset === 'eido' ? '$' : '', range: vr.y },
+    xaxis: h4 ? axis4h(c.d) : { showgrid: false, linecolor: RULE, rangeslider: { visible: false }, type: 'date' },
+    yaxis: { showgrid: true, gridcolor: '#141414', side: 'right', zeroline: false, tickprefix: mk.asset === 'eido' ? '$' : '' },
     shapes: mark ? [{ type: 'line', x0: mark, x1: mark, yref: 'paper', y0: 0, y1: 1, line: { color: RED, width: 1, dash: 'dot' } }] : [],
     annotations: !mark ? [] : [{ x: mark, y: 1, yref: 'paper', text: 'MSCI PROPOSAL', showarrow: false, xanchor: 'right', yanchor: 'top', font: { color: RED, size: 9 } }],
   });
@@ -353,23 +351,8 @@ function weeklyLine(s) {                       // weekly closes for stocks with 
   return { d: w.d, c: w.c };
 }
 
-/* Each frequency opens on its own window so they read differently:
-   4H = last ~2 weeks, Daily = last ~3 months, Weekly = everything.
-   The price axis is fitted to what's in view; double-click still zooms out to all. */
-const WINDOW = { '4H': 24, Daily: 66, Weekly: Infinity };
-function viewRange(s, freq, category) {
-  const n = s.d.length, i0 = Math.max(0, n - (WINDOW[freq] || Infinity));
-  const lo = (s.l || s.c).slice(i0).filter(isNum), hi = (s.h || s.c).slice(i0).filter(isNum);
-  if (!lo.length) return {};
-  const min = Math.min(...lo), max = Math.max(...hi), pad = (max - min) * 0.08 || max * 0.02;
-  const day = 864e5, t = d => new Date(d.slice(0, 10) + 'T00:00:00').getTime();
-  const x = category ? [i0 - 0.6, n - 0.4]
-    : [new Date(t(s.d[i0]) - (freq === 'Weekly' ? 4 : 1) * day), new Date(t(s.d[n - 1]) + (freq === 'Weekly' ? 6 : 2) * day)];
-  return { x, y: [min - pad, max + pad] };
-}
-
 function axis4h(keys) {                       // 4H: one slot per session, no overnight/weekend gaps
-  const step = Math.max(1, Math.round(Math.min(keys.length, WINDOW['4H']) / 6));   // ticks sized for the opening window
+  const step = Math.max(1, Math.round(keys.length / 7));
   const vals = keys.filter((k, i) => i % step === 0);
   return { type: 'category', showgrid: false, linecolor: RULE, rangeslider: { visible: false }, tickvals: vals,
            ticktext: vals.map(k => new Date(k.split(' ')[0] + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })) };
@@ -671,11 +654,9 @@ function stockChart() {
   if (!s || !s.d.length) { $('#stockChart').innerHTML = '<p class="note">No 4-hour data for this stock.</p>'; return; }
   const mark = s.d.find(d => d >= S.cfg.announcement);
   const shape = { type: 'line', x0: mark, x1: mark, yref: 'paper', y0: 0, y1: 1, line: { color: RED, width: 1, dash: 'dot' } };
-  const vr = viewRange(s, sim.freq, h4);
   plot($('#stockChart'), [priceTrace(s, '', wk)], { margin: { l: 0, r: 56, t: 10, b: 28 }, hovermode: 'x', uirevision: r.code + sim.freq, shapes: mark ? [shape] : [],
-       xaxis: { ...(h4 ? axis4h(s.d) : { showgrid: false, linecolor: RULE, type: 'date', tickformat: wk ? '%b %y' : '%d %b', nticks: 8, rangeslider: { visible: false },
-                               rangebreaks: wk ? [] : [{ bounds: ['sat', 'mon'] }] }), range: vr.x },
-       yaxis: { showgrid: true, gridcolor: '#141414', side: 'right', zeroline: false, tickformat: ',.0f', nticks: 6, range: vr.y } });
+       xaxis: h4 ? axis4h(s.d) : { showgrid: false, linecolor: RULE, type: 'date', tickformat: '%b %y', nticks: 8, rangeslider: { visible: false } },
+       yaxis: { showgrid: true, gridcolor: '#141414', side: 'right', zeroline: false, tickformat: ',.0f', nticks: 6 } });
 }
 
 /* ================================================================ ARGENTINA */
