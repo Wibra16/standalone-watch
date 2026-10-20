@@ -130,8 +130,8 @@ function renderHome(view) {
     return `<div class="tape ${dir}"><div class="roll">${items}${items}</div></div>`;
   };
   const row = (rows, dir) => {
-    const items = rows.map(t => `<span class="th" data-code="${t.code}"><b>${t.code}</b> ${Math.round(t.close).toLocaleString('en-US')} ` +
-      `<span class="${t.chg < 0 ? 'dn-c' : 'up-c'}">${t.chg < 0 ? '▼' : '▲'}${Math.abs(t.chg).toFixed(1)}%</span></span>`).join('');
+    const items = rows.map(t => `<span class="th" data-code="${t.code}"><b>${t.code}</b> <span class="p">${Math.round(t.close).toLocaleString('en-US')}</span> ` +
+      `<span class="x ${t.chg < 0 ? 'dn-c' : 'up-c'}">${t.chg < 0 ? '▼' : '▲'}${Math.abs(t.chg).toFixed(1)}%</span></span>`).join('');
     return `<div class="tape-h ${dir}"><div class="rollh">${items}${items}</div></div>`;
   };
   const dur = Math.max(70, Math.round(half * 3.5));       // same calm speed however many stocks
@@ -628,7 +628,7 @@ async function route() {
   $$('.tabs a').forEach(a => a.classList.toggle('on', a.dataset.tab === tab));
   window.scrollTo(0, 0);
   const view = $('#view');
-  try { await render(view); }
+  try { await render(view); window.repaintLive && window.repaintLive(); }
   catch (e) { view.innerHTML = `<div class="loading">Couldn't load this page (${esc(e.message)}). Please refresh.</div>`; console.error(e); }
 }
 
@@ -639,11 +639,12 @@ async function route() {
     $('#view').innerHTML = `<div class="loading">Couldn't load data (${esc(e.message)}).</div>`; return;
   }
   tick(); setInterval(tick, 1000);
-  const items = S.market.tape.map(t => `<span class="th" data-code="${t.code}"><b>${t.code}</b> ${Math.round(t.close).toLocaleString('en-US')} ` +
-    `<span class="${t.chg < 0 ? 'dn-c' : 'up-c'}">${t.chg < 0 ? '▼' : '▲'}${Math.abs(t.chg).toFixed(1)}%</span></span>`).join('');
+  const items = S.market.tape.map(t => `<span class="th" data-code="${t.code}"><b>${t.code}</b> <span class="p">${Math.round(t.close).toLocaleString('en-US')}</span> ` +
+    `<span class="x ${t.chg < 0 ? 'dn-c' : 'up-c'}">${t.chg < 0 ? '▼' : '▲'}${Math.abs(t.chg).toFixed(1)}%</span></span>`).join('');
   $('#strip').innerHTML = `<div class="rollh">${items}${items}</div>`;
   $('#strip').style.setProperty('--dur', Math.max(90, S.market.tape.length * 2.2) + 's');
   $$('#strip .th').forEach(el => el.addEventListener('click', () => openCard(el.dataset.code)));
   window.addEventListener('hashchange', route);
   route();
+  window.startLive && window.startLive(S.market.tape.map(t => t.code));   // live prices (live.js)
 })();
