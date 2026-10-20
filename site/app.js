@@ -310,7 +310,7 @@ async function pollWire() {
 }
 
 function marketPanel() {
-  return `<div class="panel">
+  return `<div class="panel primary">
     <div class="mk-head">
       <div><div class="label ptitle" style="margin-bottom:6px">Market check</div><div class="note" id="mkLong" style="margin:0"></div></div>
       <div class="mk-ctl"><div class="seg" id="mkAsset">${Object.entries(ASSETS).map(([k, a]) => `<button data-k="${k}" class="${k === mk.asset ? 'on' : ''}">${a.name}</button>`).join('')}</div>
@@ -781,7 +781,9 @@ async function route() {
   const [tab, render] = ROUTES[key] || ROUTES[''];
   closeCard();
   document.body.classList.toggle('home', tab === 'home');
+  document.body.dataset.tab = tab;                 // lets CSS tune spacing per page
   $$('.tabs a').forEach(a => a.classList.toggle('on', a.dataset.tab === tab));
+  $('.tabs a.on')?.scrollIntoView({ inline: 'center', block: 'nearest' });   // phones: keep the current tab in view
   window.scrollTo(0, 0);
   const view = $('#view');
   try { await render(view); window.repaintLive && window.repaintLive(); }

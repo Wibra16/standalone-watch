@@ -505,3 +505,71 @@ details.drop > summary::before { transition: transform 200ms var(--ease-out); }
   .tape, .tape-h, .strip { overflow: auto; }   /* still browsable by scrolling */
 }
 @keyframes fade-in { from { opacity: 0; } }
+
+/* ================================================================
+   Red discipline: red means bad news (falling, negative, downgrade)
+   or the one thing to do (main button, LIVE). Everything else is neutral.
+   ================================================================ */
+.tabs a.on { color: var(--white); border-color: rgba(245, 245, 245, .55); background: rgba(255, 255, 255, .06); }
+.section .n, .step .i, .gloss .n, .post .rk, .co .code, .acard .k, .about .k, .item .s i { color: var(--grey); }
+.lede b, .takeaway b { color: var(--white); font-weight: 600; }
+.seg button:hover, .num button:hover, .card .x:hover, .tk:hover .c, .about a:hover, .item a:hover { color: var(--white); }
+.seg button.on { color: var(--black); border-color: var(--white); background: var(--white); }
+.post:hover .pt { color: var(--soft); }
+.item a:hover { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: #555; }
+.about a:hover { border-color: var(--white); }
+.pager button:hover:enabled { border-color: var(--white); color: var(--white); }
+.num:focus-within, .dd.open .dd-btn { border-color: rgba(245, 245, 245, .5); }
+.dd-btn b, .dd-opt b { color: var(--white); font-weight: 600; }
+.dd-opt.on { background: rgba(255, 255, 255, .07); }
+table.stocks tbody tr.sel { background: rgba(255, 255, 255, .05); }
+table.stocks tbody tr.sel td:nth-child(2) { color: var(--white); font-weight: 600; }
+table.stocks tr.sel .ck span { border-color: var(--white); background: radial-gradient(var(--white) 45%, transparent 50%); }
+.sl .bub { color: var(--white); }
+input[type=range].rng { background: linear-gradient(to right, var(--white) var(--p, 50%), #2b2b2b var(--p, 50%)); }
+input[type=range].rng::-webkit-slider-thumb { background: var(--white); }
+input[type=range].rng::-moz-range-thumb { background: var(--white); }
+input[type=range].rng:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px rgba(255, 255, 255, .25); }
+.label.ptitle::before { background: var(--white); }
+.zhint b { color: var(--white); }
+button:focus-visible, a:focus-visible { outline-color: var(--white); }
+/* poll: only the full downgrade reads red */
+.poll .heat { color: var(--grey); }
+.poll .opt[data-k="standalone"] .heat { color: var(--red); }
+.poll .opt:hover { border-color: rgba(245, 245, 245, .35); }
+.poll .opt.lead .bar i { background: var(--white); }
+.poll .opt.mine { border-color: rgba(245, 245, 245, .7); background: linear-gradient(180deg, rgba(255, 255, 255, .06), #0b0b0b 70%); }
+.poll .opt.mine::after { color: var(--white); }
+@media (hover: none) { .poll .opt.mine:hover { border-color: rgba(245, 245, 245, .7); } }
+
+/* ================================================================
+   News: one clear lead section, more air between the rest
+   ================================================================ */
+body[data-tab="news"] .panel { margin-bottom: 40px; }
+body[data-tab="news"] .panel.primary { padding: 34px 36px 34px; border-color: #2a2a2a; }
+body[data-tab="news"] .panel.primary .label.ptitle { font-size: 17px; }
+body[data-tab="news"] .panel:not(.primary) { background: transparent; border-color: #171717; }
+body[data-tab="news"] .photos { margin-bottom: 40px; }
+
+/* ================================================================
+   Phone pass
+   ================================================================ */
+@media (max-width: 720px) {
+  main { padding-top: calc(var(--nav-h) + var(--strip-h) + 22px); }
+  /* nav: the tabs get the room; the countdown lives on Home anyway */
+  #mini { display: none; }
+  .nav { gap: 8px; }
+  .tabs { flex: 1 1 auto; min-width: 0; scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(to right, #000 85%, transparent); mask-image: linear-gradient(to right, #000 85%, transparent); }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tabs a { flex: 0 0 auto; min-height: 36px; display: inline-flex; align-items: center; }
+  .live { margin-right: 0; font-size: 9px; }
+  /* bigger tap targets */
+  .seg button { min-height: 40px; }
+  .item a { display: inline-block; padding: 3px 0; line-height: 1.5; }
+  /* wide stock table: show that it scrolls sideways */
+  .tablewrap { position: relative; -webkit-mask-image: linear-gradient(to right, #000 88%, transparent); mask-image: linear-gradient(to right, #000 88%, transparent); }
+  .tablewrap::before { content: "Swipe the table →"; display: block; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--grey); margin-bottom: 8px; }
+  body[data-tab="news"] .panel { margin-bottom: 28px; }
+  body[data-tab="news"] .panel.primary { padding: 24px 18px 26px; }
+}
