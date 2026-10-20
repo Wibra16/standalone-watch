@@ -157,6 +157,37 @@ def ohlc(df):
 hist = data.load_many(("EIDO", config.INDEX_TICKER), start="2025-04-01")
 write("candles.json", {"eido": ohlc(hist["EIDO"]), "jci": ohlc(hist[config.INDEX_TICKER])})
 
+# --- 4-hour candles (last ~60 days; Yahoo keeps hourly bars that long) -----------------
+# Hourly bars are grouped into two sessions a day, in each market's own time:
+# IDX 09:00 (morning, to the lunch break) and 13:00 (afternoon, to the close);
+# EIDO in New York 09:30 and 13:30.
+import yfinance as yf  # noqa: E402
+
+
+def four_hour(df, tz, split, starts):
+    df = df.dropna(subset=["Open", "High", "Low", "Close"])
+    if df.empty:
+        return {"d": [], "o": [], "h": [], "l": [], "c": []}
+    idx = df.index.tz_convert(tz)
+    hours = idx.hour + idx.minute / 60
+    keys = [f"{d:%Y-%m-%d} {starts[0] if h < split else starts[1]}" for d, h in zip(idx, hours)]
+    g = df.assign(k=keys).groupby("k", sort=True)
+    bars = pd.DataFrame({"o": g["Open"].first(), "h": g["High"].max(), "l": g["Low"].min(), "c": g["Close"].last()})
+    return {"d": list(bars.index), **{k: [num(v, 3) for v in bars[k]] for k in "ohlc"}}
+
+
+h4_tickers = [config.INDEX_TICKER, "EIDO"] + [t[0] for t in config.UNIVERSE]
+try:
+    raw = yf.download(h4_tickers, period="60d", interval="60m", progress=False, auto_adjust=False, group_by="ticker", threads=True)
+    IDX = ("Asia/Jakarta", 13, ("09:00", "13:00"))
+    write("intraday.json", {
+        "jci": four_hour(raw[config.INDEX_TICKER], *IDX),
+        "eido": four_hour(raw["EIDO"], "America/New_York", 13.5, ("09:30", "13:30")),
+        "stocks": {t.replace(".JK", ""): four_hour(raw[t], *IDX) for t in h4_tickers[2:] if t in raw.columns.get_level_values(0)},
+    })
+except Exception as err:       # keep the previous file if Yahoo's hourly feed fails
+    print("  intraday:", err)
+
 # --- internet sentiment (Reddit) -------------------------------------------------------
 import reddit  # noqa: E402
 

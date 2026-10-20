@@ -70,7 +70,9 @@ function companyHTML(code, withPrice) {
 }
 const candleText = (d, o, h, l, c, pre = '', week = false) => d.map((x, i) => {   // tooltip: date first, then OHLC
   const f = v => isNum(v) ? pre + (pre ? v.toFixed(2) : Math.round(v).toLocaleString('en-US')) : '—';
-  return `<b>${week ? 'Week of ' : ''}${new Date(x + 'T00:00:00').toLocaleDateString('en-GB', { weekday: week ? undefined : 'short', day: '2-digit', month: 'short', year: 'numeric' })}</b><br>` +
+  const [day, time] = x.split(' '), end = time && { '09:00': '–lunch', '13:00': '–close', '09:30': '–13:30', '13:30': '–close' }[time];
+  return `<b>${week ? 'Week of ' : ''}${new Date(day + 'T00:00:00').toLocaleDateString('en-GB', { weekday: week ? undefined : 'short', day: '2-digit', month: 'short', year: 'numeric' })}` +
+    `${time ? ` · ${time}${end || ''}` : ''}</b><br>` +
     `open ${f(o[i])}<br>high ${f(h[i])}<br>low ${f(l[i])}<br>close ${f(c[i])}`;
 });
 function plot(el, traces, layout) {             // Plotly loads in the background; wait for it if needed
@@ -180,15 +182,36 @@ function priceTrace(s, pre = '', week = false) {   // s = {d, o, h, l, c}
 /* live chart updates: fold each streamed quote (live.js) into today's bar.
    Yahoo's stream has no day open/high/low, so a new day opens at the previous
    close and its high/low widen with every price we see. */
-function applyLive(s, q, tz) {
-  const today = new Date(q.time || Date.now()).toLocaleDateString('en-CA', { timeZone: tz }), n = s.d.length - 1;
+const SESSIONS = { 'Asia/Jakarta': [13, ['09:00', '13:00']], 'America/New_York': [13.5, ['09:30', '13:30']] };   // 4H bar starts
+function barKey(t, tz, h4) {                   // the bar a timestamp falls in, in the market's own time
+  const p = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(t));
+  const g = k => p.find(x => x.type === k).value, day = `${g('year')}-${g('month')}-${g('day')}`;
+  if (!h4) return day;
+  const [split, starts] = SESSIONS[tz], h = +g('hour') + +g('minute') / 60;
+  return `${day} ${h < split ? starts[0] : starts[1]}`;
+}
+function applyLive(s, q, tz, h4 = false) {
+  if (!s || !s.d) return;
+  const today = barKey(q.time || Date.now(), tz, h4), n = s.d.length - 1;
   if (n < 0 || today < s.d[n]) return;
   if (s.d[n] === today) { s.h[n] = Math.max(s.h[n], q.price); s.l[n] = Math.min(s.l[n], q.price); s.c[n] = q.price; }
   else {
-    const prev = isNum(q.change) ? q.price - q.change : s.c[n];
+    const prev = !h4 && isNum(q.change) ? q.price - q.change : s.c[n];
     s.d.push(today); s.o.push(prev); s.h.push(Math.max(prev, q.price)); s.l.push(Math.min(prev, q.price)); s.c.push(q.price);
   }
   s.live = today;
+}
+async function loadIntra() {                  // 4-hour bars: only fetched when someone picks 4H
+  if (!S.intra) {
+    S.intra = await getJSON('intraday.json');
+    const L = window.liveLast || {};
+    Object.entries(L).forEach(([k, q]) => {
+      if (INDEX_FEED[k]) applyLive(S.intra[INDEX_FEED[k][0]], q, INDEX_FEED[k][1], true);
+      else applyLive(S.intra.stocks[k], q, 'Asia/Jakarta', true);
+    });
+  }
+  return S.intra;
 }
 const liveTimers = {};
 const soon = (k, f) => { if (!liveTimers[k]) liveTimers[k] = setTimeout(() => { liveTimers[k] = 0; f(); }, 1500); };
@@ -197,6 +220,7 @@ window.onLive = (code, q) => {
   const idx = INDEX_FEED[code];
   if (idx && S.candles) {
     applyLive(S.candles[idx[0]], q, idx[1]);
+    if (S.intra) applyLive(S.intra[idx[0]], q, idx[1], true);
     if (idx[0] === mk.asset && $('#mkChart')) soon('mk', marketDraw);
     return;
   }
@@ -204,6 +228,7 @@ window.onLive = (code, q) => {
   if (st && st.open && st.dates.length) {
     applyLive({ get d() { return st.dates; }, get o() { return st.open; }, get h() { return st.high; }, get l() { return st.low; }, get c() { return st.close; },
                 set live(v) { st.live = v; } }, q, 'Asia/Jakarta');
+    if (S.intra) applyLive(S.intra.stocks[code], q, 'Asia/Jakarta', true);
     if (code === sim.pick && $('#stockChart')) soon('st', stockChart);
   }
 };
@@ -226,7 +251,7 @@ function marketPanel() {
     <div class="mk-head">
       <div><div class="label ptitle" style="margin-bottom:6px">Market check</div><div class="note" id="mkLong" style="margin:0"></div></div>
       <div class="mk-ctl"><div class="seg" id="mkAsset">${Object.entries(ASSETS).map(([k, a]) => `<button data-k="${k}" class="${k === mk.asset ? 'on' : ''}">${a.name}</button>`).join('')}</div>
-        <div class="seg" id="mkFreq">${['Daily', 'Weekly'].map(f => `<button class="${f === mk.freq ? 'on' : ''}">${f}</button>`).join('')}</div>
+        <div class="seg" id="mkFreq">${['4H', 'Daily', 'Weekly'].map(f => `<button class="${f === mk.freq ? 'on' : ''}">${f}</button>`).join('')}</div>
         ${typeSeg('mkType')}</div>
     </div>
     <div class="metrics" style="--cols:4" id="mkStats"></div>
@@ -246,14 +271,23 @@ function marketDraw() {
   $('#mkLong').textContent = A.long + (isLive ? ' · live today' : ' · last close ' + new Date(s.d[n] + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }));
   $('#mkStats').innerHTML = stat(isLive ? 'Live price' : 'Last close', A.px(s.c[n])) + stat('Day over day', fmtPct(dod), tone(dod)) +
                             stat('Week over week', fmtPct(wow), tone(wow)) + stat('Since 15 Oct', fmtPct(since), tone(since));
-  const c = mk.freq === 'Weekly' ? weekly(s) : s;
+  if (mk.freq === '4H' && !S.intra) { loadIntra().then(marketDraw).catch(() => {}); return; }
+  const c = mk.freq === '4H' ? S.intra[mk.asset] : mk.freq === 'Weekly' ? weekly(s) : s;
+  const h4 = mk.freq === '4H', mark = h4 ? c.d.find(d => d >= S.cfg.announcement) : S.cfg.announcement;
   plot($('#mkChart'), [priceTrace(c, mk.asset === 'eido' ? '$' : '', mk.freq === 'Weekly')], {
     margin: { l: 0, r: 0, t: 10, b: 0 }, hovermode: 'x', uirevision: mk.asset + mk.freq,   // live redraws keep the user's zoom
-    xaxis: { showgrid: false, linecolor: RULE, rangeslider: { visible: false }, type: 'date' },
+    xaxis: h4 ? axis4h(c.d) : { showgrid: false, linecolor: RULE, rangeslider: { visible: false }, type: 'date' },
     yaxis: { showgrid: true, gridcolor: '#141414', side: 'right', zeroline: false, tickprefix: mk.asset === 'eido' ? '$' : '' },
-    shapes: [{ type: 'line', x0: S.cfg.announcement, x1: S.cfg.announcement, yref: 'paper', y0: 0, y1: 1, line: { color: RED, width: 1, dash: 'dot' } }],
-    annotations: [{ x: S.cfg.announcement, y: 1, yref: 'paper', text: 'MSCI PROPOSAL', showarrow: false, xanchor: 'right', yanchor: 'top', font: { color: RED, size: 9 } }],
+    shapes: mark ? [{ type: 'line', x0: mark, x1: mark, yref: 'paper', y0: 0, y1: 1, line: { color: RED, width: 1, dash: 'dot' } }] : [],
+    annotations: !mark ? [] : [{ x: mark, y: 1, yref: 'paper', text: 'MSCI PROPOSAL', showarrow: false, xanchor: 'right', yanchor: 'top', font: { color: RED, size: 9 } }],
   });
+}
+
+function axis4h(keys) {                       // 4H: one slot per session, no overnight/weekend gaps
+  const step = Math.max(1, Math.round(keys.length / 7));
+  const vals = keys.filter((k, i) => i % step === 0);
+  return { type: 'category', showgrid: false, linecolor: RULE, rangeslider: { visible: false }, tickvals: vals,
+           ticktext: vals.map(k => new Date(k.split(' ')[0] + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })) };
 }
 
 function marketWire(view) {
@@ -351,7 +385,7 @@ const SCENARIO_NOTES = {
   'Frontier': 'Moved to the Frontier index. EM funds sell, but some Frontier funds buy, so about 85% of the selling remains.',
   'Standalone': 'Dropped from both indexes. Every fund tracking MSCI EM must sell its Indonesian shares.',
 };
-const sim = { scenario: 'Standalone', page: 0, pick: null, inputs: null };
+const sim = { scenario: 'Standalone', page: 0, pick: null, inputs: null, freq: 'Daily' };
 
 function simCompute() {
   const I = sim.inputs, factor = S.cfg.scenarios[sim.scenario];
@@ -535,19 +569,24 @@ function simStock() {
       <div class="metric"><div class="k">Days of forced selling</div><div class="v">${isNum(r.days) ? fmt(r.days, 0) : '—'}</div></div>
       <div class="metric" title="Selling it all in ${I.days} days (A6), compared with a normal day's trading"><div class="k">× normal volume</div><div class="v">${isNum(r.pressure) ? fmt(r.pressure / 100, 1) + '×' : '—'}</div></div>
       <div class="metric"><div class="k">Since 15 Oct</div><div class="v">${fmtPct(r.since)}</div></div>
-    </div>${sentence}<div class="chart-ctl">${typeSeg('stType')}</div><div class="chart" id="stockChart"></div><p class="zhint"><b>Zoom:</b> click and drag across the chart (on a phone, drag with one finger) &nbsp;·&nbsp; <b>Zoom out:</b> double-click (double-tap on a phone)</p>`;
+    </div>${sentence}<div class="chart-ctl"><div class="seg" id="stFreq">${['4H', 'Daily'].map(f => `<button class="${f === sim.freq ? 'on' : ''}">${f}</button>`).join('')}</div>${typeSeg('stType')}</div><div class="chart" id="stockChart"></div><p class="zhint"><b>Zoom:</b> click and drag across the chart (on a phone, drag with one finger) &nbsp;·&nbsp; <b>Zoom out:</b> double-click (double-tap on a phone)</p>`;
   wireType('stType', stockChart);
+  $$('#stFreq button').forEach(b => b.addEventListener('click', () => {
+    sim.freq = b.textContent; $$('#stFreq button').forEach(x => x.classList.toggle('on', x === b)); stockChart(); }));
   stockChart();
 }
 
 function stockChart() {
   const r = S.market.stocks.find(x => x.code === sim.pick);
   if (!r || !$('#stockChart')) return;
-  const i0 = r.dates.findIndex(d => d >= S.cfg.announcement);
-  const shape = { type: 'line', x0: S.cfg.announcement, x1: S.cfg.announcement, yref: 'paper', y0: 0, y1: 1, line: { color: RED, width: 1, dash: 'dot' } };
-  const trace = priceTrace({ d: r.dates, o: r.open, h: r.high, l: r.low, c: r.close });
-  plot($('#stockChart'), [trace], { margin: { l: 0, r: 56, t: 10, b: 28 }, hovermode: 'x', uirevision: r.code, shapes: i0 >= 0 ? [shape] : [],
-       xaxis: { showgrid: false, linecolor: RULE, type: 'date', tickformat: '%b %y', nticks: 8, rangeslider: { visible: false } },
+  const h4 = sim.freq === '4H';
+  if (h4 && !S.intra) { loadIntra().then(stockChart).catch(() => {}); return; }
+  const s = h4 ? S.intra.stocks[r.code] : { d: r.dates, o: r.open, h: r.high, l: r.low, c: r.close };
+  if (!s || !s.d.length) { $('#stockChart').innerHTML = '<p class="note">No 4-hour data for this stock.</p>'; return; }
+  const mark = s.d.find(d => d >= S.cfg.announcement);
+  const shape = { type: 'line', x0: mark, x1: mark, yref: 'paper', y0: 0, y1: 1, line: { color: RED, width: 1, dash: 'dot' } };
+  plot($('#stockChart'), [priceTrace(s)], { margin: { l: 0, r: 56, t: 10, b: 28 }, hovermode: 'x', uirevision: r.code + sim.freq, shapes: mark ? [shape] : [],
+       xaxis: h4 ? axis4h(s.d) : { showgrid: false, linecolor: RULE, type: 'date', tickformat: '%b %y', nticks: 8, rangeslider: { visible: false } },
        yaxis: { showgrid: true, gridcolor: '#141414', side: 'right', zeroline: false, tickformat: ',.0f', nticks: 6 } });
 }
 
