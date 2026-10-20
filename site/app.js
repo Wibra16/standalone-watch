@@ -280,7 +280,8 @@ function pollShow(data, mine) {
     const k = b.dataset.k, n = reveal ? data.counts[k] : 0, pct = reveal ? Math.round(n / data.total * 100) : 0;
     b.classList.toggle('mine', k === mine);
     b.classList.toggle('lead', reveal && n === top && n > 0);
-    b.querySelector('.bar i').style.width = pct + '%';
+    b.querySelector('.bar i').style.transform = `scaleX(${pct / 100})`;   // transform, not width: no layout per frame
+    b.querySelector('.bar i').style.transitionDelay = (POLL.findIndex(p => p[0] === k) * 60) + 'ms';   // small stagger
     b.querySelector('.pc').textContent = reveal ? pct + '%' : '';
   });
 }

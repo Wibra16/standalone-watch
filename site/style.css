@@ -444,3 +444,64 @@ table.stocks td.na { color: #3a3a3a; }
 button, a, .opt { -webkit-tap-highlight-color: transparent; }
 button:focus, a:focus { outline: none; }
 button:focus-visible, a:focus-visible { outline: 1px solid var(--red); outline-offset: 2px; }
+
+/* ================================================================
+   Polish pass (Emil Kowalski design-engineering principles)
+   ================================================================ */
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);        /* strong ease-out: instant feedback */
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);    /* on-screen movement */
+}
+
+/* 1. Everything pressable answers the press (subtle, 160ms) */
+.tabs a, .seg button, .num button, .pager button, .dd-btn, .opt, .go, .tk, .th, .post, .card .x, details.drop > summary {
+  transition-property: color, border-color, background-color, transform;
+  transition-duration: 160ms; transition-timing-function: var(--ease-out);
+}
+.tabs a:active, .seg button:active, .num button:active, .pager button:active:enabled, .dd-btn:active,
+.poll .opt:active:not(:disabled), .card .x:active, details.drop > summary:active { transform: scale(0.97); }
+.go:active { transform: scale(0.98); }
+
+/* 2. Snappier, purposeful curves (UI motion stays under ~300ms) */
+.go { transition: border-color 200ms ease, transform 200ms var(--ease-out); }
+.go::before { transition: transform 280ms var(--ease-in-out); }
+.go .lbl { transition: color 200ms ease; }
+.down { transition: transform 280ms var(--ease-out), background-color 200ms ease, color 200ms ease; }
+.poll .opt { transition: border-color 200ms ease, background-color 200ms ease, transform 200ms var(--ease-out); }
+.photo img { transition: filter 300ms ease; }
+details.drop > summary::before { transition: transform 200ms var(--ease-out); }
+
+/* 3. Popovers grow from their trigger, never from nothing */
+.dd-pop { transform-origin: top center; }
+.dd.open .dd-pop { animation: dd-in 160ms var(--ease-out); }
+@keyframes dd-in { from { opacity: 0; transform: translateY(-4px) scale(0.97); } }
+.card.co { animation: card-in 220ms var(--ease-out); }          /* modal: stays centred */
+@keyframes card-in { from { opacity: 0; transform: translateY(6px) scale(0.98); } }
+
+/* 4. Poll results: bars grow with transform (no layout), staggered */
+.poll .bar i { width: 100%; transform: scaleX(0); transform-origin: left center;
+  transition: transform 600ms var(--ease-out), background-color 200ms ease; }
+
+/* 5. Hover effects only where a real pointer can hover (no sticky taps on phones) */
+@media (hover: none) {
+  .go:hover { transform: none; border-color: rgba(225, 6, 0, .45); }
+  .go:hover::before { transform: translateX(-101%); }
+  .go:hover .lbl { color: var(--white); }
+  .go:hover .down { background: var(--red); color: var(--black); transform: none; }
+  .poll .opt:hover { transform: none; border-color: #222; }
+  .poll .opt.mine:hover { border-color: var(--red); }
+  .photo:hover img { filter: grayscale(1) contrast(1.1) brightness(.75); }
+  .tk:hover, table.stocks tbody tr:hover { background: transparent; }
+}
+
+/* 6. Respect reduced motion: keep fades and colour, drop movement */
+@media (prefers-reduced-motion: reduce) {
+  .roll, .rollh, .strip .rollh { animation: none !important; }
+  .go, .go::after, .live.on::before, details.drop.hot:not([open]) { animation: none !important; }
+  .go::after { display: none; }
+  .tabs a:active, .seg button:active, .poll .opt:active, .go:active, .go:hover, .poll .opt:hover, .go:hover .down { transform: none !important; }
+  .card.co, .dd.open .dd-pop { animation: fade-in 150ms ease !important; }
+  .poll .bar i { transition: transform 0ms, background-color 200ms ease; }
+  .tape, .tape-h, .strip { overflow: auto; }   /* still browsable by scrolling */
+}
+@keyframes fade-in { from { opacity: 0; } }
