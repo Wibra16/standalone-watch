@@ -43,6 +43,6 @@ assumptions and free public data (Yahoo Finance, Google News). Not affiliated wi
 all trademarks belong to their owners. Provided "as is" without warranty.
 
 ## Author
-Created by Wibra · idxdown@gmail.com
+Created by Wibra · idxdowns@gmail.com
 
 © 2026 Shakti Widjonarko. All rights reserved.

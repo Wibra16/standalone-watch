@@ -88,7 +88,7 @@ ADV_WINDOW = 20  # days used for average daily traded value
 # Author (shown in the footer)
 # ---------------------------------------------------------------------------
 AUTHOR = "Wibra"
-AUTHOR_EMAIL = "idxdown@gmail.com"
+AUTHOR_EMAIL = "idxdowns@gmail.com"
 COPYRIGHT_YEAR = 2026
 
 # ---------------------------------------------------------------------------
