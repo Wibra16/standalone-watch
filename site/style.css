@@ -439,3 +439,8 @@ table.stocks td.na { color: #3a3a3a; }
   border-left: 3.5px solid transparent; border-right: 3.5px solid transparent; }
 .up-c .ar { border-bottom: 6px solid currentColor; }
 .dn-c .ar { border-top: 6px solid currentColor; }
+
+/* no blue browser focus ring / tap flash after clicking; keyboard users still get a red outline */
+button, a, .opt { -webkit-tap-highlight-color: transparent; }
+button:focus, a:focus { outline: none; }
+button:focus-visible, a:focus-visible { outline: 1px solid var(--red); outline-offset: 2px; }
