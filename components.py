@@ -375,7 +375,7 @@ def hero(jci_change, fx_last, tape=None, tape_date=None):
         <span class="v red" id="s">—</span><span class="k">s</span>
       </div>
       <div class="cap">until MSCI decides &nbsp;·&nbsp; {status} {config.DECISION_DATE:%d %b %Y}</div>
-      <div class="mkt">JCI <span class="red">{jci}</span> &nbsp;&nbsp; USD/IDR <span>{fx}</span> &nbsp;&nbsp; since 15 Oct</div>
+      <div class="mkt">JCI <span class="red">{jci}</span> since MSCI's downgrade warning on 15 Oct &nbsp;·&nbsp; USD/IDR <span>{fx}</span></div>
       <div class="golbl">See what's going on in Indonesia</div>
       <button class="down" id="down" title="Latest news">↓</button>
       <div class="card-bg" id="cardbg">
